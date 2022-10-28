@@ -421,7 +421,11 @@ class AbsoluteDG:
     def __init__(self, **kwargs):
         
         # set gmxlib path if it is not set
-        if os.environ['GMXLIB']=='':
+        if 'GMXLIB' not in os.environ.keys():
+            gmx.set_gmxlib()
+
+        # set gmxlib path if it's empty
+        if os.environ['GMXLIB'] == '':
             gmx.set_gmxlib()
         
         # the results are summarized in a pandas framework
