@@ -30,7 +30,7 @@ def set_gmxlib():
     os.environ['GMXLIB'] = gmxlib
 
 
-def editconf(f, o='editconf.gro', bt='cubic', d=1.2, other_flags=''):
+def editconf(f, o='editconf.gro', bt='cubic', d=1.2, other_flags='', gmxexec=None):
     """Simple ``gmx editconf`` wrapper.
 
     Parameters
@@ -52,14 +52,16 @@ def editconf(f, o='editconf.gro', bt='cubic', d=1.2, other_flags=''):
 
     """
 
-    gmx = get_gmx()
-    call('{gmx} editconf -f {f} -o {o} -bt {bt} -d {d} '
+    if gmxexec is None:
+        gmxexec = get_gmx()
+
+    call('{gmxexec} editconf -f {f} -o {o} -bt {bt} -d {d} '
          '{other_flags}'.format(gmx=gmx, f=f, o=o, bt=bt, d=d, other_flags=other_flags),
          shell=True)
 
 
 def pdb2gmx(f, o='pdb2gmx.gro', p='topol.top', ff='amber99sb-star-ildn-mut',
-            water='tip3p', other_flags=''):
+            water='tip3p', other_flags='', gmxexec=None):
     """Simple ``gmx pdb2gmx`` wrapper.
 
     Parameters
@@ -83,14 +85,16 @@ def pdb2gmx(f, o='pdb2gmx.gro', p='topol.top', ff='amber99sb-star-ildn-mut',
 
     """
 
-    gmx = get_gmx()
-    call('{gmx} pdb2gmx -f {f} -o {o} -p {p} -ff {ff} -water {water} '
+    if gmxexec is None:
+        gmxexec = get_gmx()
+
+    call('{gmxexec} pdb2gmx -f {f} -o {o} -p {p} -ff {ff} -water {water} '
          '{other_flags}'.format(gmx=gmx, f=f, o=o, p=p, ff=ff, water=water, other_flags=other_flags),
          shell=True)
 
 
 def solvate(cp, cs='spc216.gro', p='topol.top', o='solvate.gro',
-            other_flags=''):
+            other_flags='', gmxexec=None):
     """Simple ``gmx solvate`` wrapper.
 
     Parameters
@@ -112,13 +116,15 @@ def solvate(cp, cs='spc216.gro', p='topol.top', o='solvate.gro',
 
     """
 
-    gmx = get_gmx()
-    call('{gmx} solvate -cp {cp} -cs {cs} -p {p} -o {o} '
+    if gmxexec is None:
+        gmxexec = get_gmx()
+
+    call('{gmxexec} solvate -cp {cp} -cs {cs} -p {p} -o {o} '
          '{other_flags}'.format(gmx=gmx, cp=cp, cs=cs, p=p, o=o, other_flags=other_flags),
          shell=True)
 
 
-def grompp(f, c, p, o='grompp.tpr', maxwarn=0, other_flags=''):
+def grompp(f, c, p, o='grompp.tpr', maxwarn=0, other_flags='', gmxexec=None):
     """Simple ``gmx grompp`` wrapper.
 
     Parameters
@@ -142,14 +148,16 @@ def grompp(f, c, p, o='grompp.tpr', maxwarn=0, other_flags=''):
 
     """
 
-    gmx = get_gmx()
-    call('{gmx} grompp -f {f} -c {c} -r {c} -p {p} -o {o} -maxwarn {maxwarn}'
+    if gmxexec is None:
+        gmxexec = get_gmx()
+
+    call('{gmxexec} grompp -f {f} -c {c} -r {c} -p {p} -o {o} -maxwarn {maxwarn}'
          '{other_flags}'.format(gmx=gmx, f=f, c=c, p=p, o=o, maxwarn=maxwarn, other_flags=other_flags),
          shell=True)
 
 
 def genion(s, p, o='genion.gro', np=0, nn=0, conc=0.15, neutral=True,
-           other_flags=''):
+           other_flags='', gmxexec=None):
 
     """Simple ``gmx genion`` wrapper. By default, group 'SOL' will be replaced
     by ions.
@@ -181,17 +189,19 @@ def genion(s, p, o='genion.gro', np=0, nn=0, conc=0.15, neutral=True,
 
     """
 
-    gmx = get_gmx()
+    if gmxexec is None:
+        gmxexec = get_gmx()
+
     if neutral is True:
         other_flags += ' -neutral'
 
-    call('echo "SOL" | {gmx} genion -s {s} -p {p} -o {o} -np {np} -nn {nn} -conc {conc} '
+    call('echo "SOL" | {gmxexec} genion -s {s} -p {p} -o {o} -np {np} -nn {nn} -conc {conc} '
          '{other_flags}'.format(gmx=gmx, s=s, p=p, o=o, np=np, nn=nn, conc=conc, other_flags=other_flags),
          shell=True)
 
 
 def trjconv(f, s, o='trjconv.xtc', ur='compact', pbc='none', fit='none',
-            out_grp='System', fit_grp='C-alpha', sep=False, other_flags=''):
+            out_grp='System', fit_grp='C-alpha', sep=False, other_flags='', gmxexec=None):
     """Simple ``gmx trjconv`` wrapper.
 
     Parameters
@@ -228,23 +238,24 @@ def trjconv(f, s, o='trjconv.xtc', ur='compact', pbc='none', fit='none',
 
     """
 
-    gmx = get_gmx()
+    if gmxexec is None:
+        gmxexec = get_gmx()
 
     if sep is True:
         other_flags += ' -sep'
 
     if fit == 'none':
-        call('echo "{out_grp}" | {gmx} trjconv -f {f} -s {s} -o {o} -ur {ur} -pbc {pbc}'
+        call('echo "{out_grp}" | {gmxexec} trjconv -f {f} -s {s} -o {o} -ur {ur} -pbc {pbc}'
              '{other_flags}'.format(gmx=gmx, f=f, s=s, o=o, ur=ur, pbc=pbc, out_grp=out_grp, other_flags=other_flags),
              shell=True)
     else:
-        call('echo "{fit_grp}" "{out_grp}" | {gmx} trjconv -f {f} -s {s} -o {o} -ur {ur} -pbc {pbc} -fit {fit}'
+        call('echo "{fit_grp}" "{out_grp}" | {gmxexec} trjconv -f {f} -s {s} -o {o} -ur {ur} -pbc {pbc} -fit {fit}'
              '{other_flags}'.format(gmx=gmx, f=f, s=s, o=o, ur=ur, pbc=pbc, fit=fit,
                                     out_grp=out_grp, fit_grp=fit_grp, other_flags=other_flags),
              shell=True)
 
 
-def mdrun(s, deffnm='md', verbose=False, other_flags=''):
+def mdrun(s, deffnm='md', verbose=False, other_flags='', gmxexec=None):
     """Simple ``gmx mdrun`` wrapper.
 
     Parameters
@@ -264,12 +275,13 @@ def mdrun(s, deffnm='md', verbose=False, other_flags=''):
 
     """
 
-    gmx = get_gmx()
+    if gmxexec is None:
+        gmxexec = get_gmx()
 
     if verbose is True:
         other_flags += ' -v'
 
-    call('{gmx} mdrun -s {s} -deffnm {deffnm} {other_flags}'.format(gmx=gmx, s=s, deffnm=deffnm, other_flags=other_flags),
+    call('{gmxexec} mdrun -s {s} -deffnm {deffnm} {other_flags}'.format(gmx=gmx, s=s, deffnm=deffnm, other_flags=other_flags),
          shell=True)
 
 
