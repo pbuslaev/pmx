@@ -1122,16 +1122,16 @@ class AbsoluteDG:
                     copy_files_folders( initTop, outTop )
                     
                     waterPdb = '{0}/water.pdb'.format(outPath)
-                    gmx.solvate(initPdb, cs='spc216.gro', p=outTop, o=waterPdb) 
+                    gmx.solvate(initPdb, cs='spc216.gro', p=outTop, o=waterPdb, gmxexec=self.gmxexec) 
                     
                     # ions
                     ionsPdb = '{0}/ions.pdb'.format(outPath)
                     mdp = '{0}/em_l0.mdp'.format(self.mdpPath)
                     tpr = '{0}/tpr.tpr'.format(outPath)
                     mdout = '{0}/mdout.mdp'.format(outPath)
-                    gmx.grompp(f=mdp, c=waterPdb, p=outTop, o=tpr, maxwarn=-1, other_flags=' -po {0}'.format(mdout))        
+                    gmx.grompp(f=mdp, c=waterPdb, p=outTop, o=tpr, maxwarn=-1, other_flags=' -po {0}'.format(mdout), gmxexec=self.gmxexec)        
                     gmx.genion(s=tpr, p=outTop, o=ionsPdb, conc=self.conc, neutral=True, 
-                          other_flags=' -pname {0} -nname {1}'.format(self.pname, self.nname))                     
+                          other_flags=' -pname {0} -nname {1}'.format(self.pname, self.nname), gmxexec=self.gmxexec)
                     
                     # at the end of the file ii restraints need to be added
                     if self.iiRestrFile[case]!=None:
@@ -1143,8 +1143,8 @@ class AbsoluteDG:
                 print('TODO')  
                 
                 
-    def _prepare_single_tpr( self, state='stateA', simpath='', toppath='', simType='em', topfile='topol.top', 
-                            inStr=None, mdp='', frNum=0, gmxexec=None ):  
+    def _prepare_single_tpr(self, state='stateA', simpath='', toppath='', simType='em', topfile='topol.top', 
+                            inStr=None, mdp='', frNum=0):  
              
         top = '{0}/{1}'.format(toppath,topfile)
         tpr = '{0}/tpr.tpr'.format(simpath)
@@ -1152,7 +1152,7 @@ class AbsoluteDG:
         if ('transition' in simType) or ('ti' in simType):
             tpr = '{0}/ti{1}.tpr'.format(simpath,frNum)        
             
-        gmx.grompp(gmxexec=gmxexec,f=mdp, c=inStr, p=top, o=tpr, maxwarn=-1, other_flags=' -po {0}'.format(mdout))
+        gmx.grompp(f=mdp, c=inStr, p=top, o=tpr, maxwarn=-1, other_flags=' -po {0}'.format(mdout), gmxexec=self.gmxexec)
         clean_gromacs_backup_files( simpath )     
         
 
@@ -1254,7 +1254,7 @@ class AbsoluteDG:
         trr = '{0}/traj.trr'.format(eqpath)
         frame = '{0}/frame.gro'.format(tipath)
 
-        gmx.trjconv(s=tpr,f=trr,o=frame, sep=True, ur='compact', pbc='mol', other_flags=' -b {0}'.format(startTime))
+        gmx.trjconv(s=tpr,f=trr,o=frame, sep=True, ur='compact', pbc='mol', other_flags=' -b {0}'.format(startTime), gmxexec=self.gmxexec)
         
         # move frame0.gro to framen+1.gro
         frameFiles = os.listdir( tipath )
