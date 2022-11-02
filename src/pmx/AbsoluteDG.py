@@ -837,7 +837,7 @@ class AbsoluteDG:
             # restrain protein
             protStrFile = self.ligands[lig]['protein'].structPdbPath
             protItpFile = self.ligands[lig]['protein'].topItpPath
-            if case=='apo':
+            if case=='apo' and self.apoCase!=None:
                 protStrFile = self.ligands[self.apoCase]['protein'].structPdbPath
                 protItpFile = self.ligands[self.apoCase]['protein'].topItpPath                
             outProtItpFile = '{0}/{1}'.format(strPath,self.ligands[lig]['protein'].topItp) 
@@ -1237,7 +1237,7 @@ class AbsoluteDG:
         if ('transition' in simType) or ('ti' in simType):
             tpr = '{0}/ti{1}.tpr'.format(simpath,frNum)        
             
-        gmx.grompp(gmxexec=gmxexec,f=mdp, c=inStr, p=top, o=tpr, maxwarn=-1, other_flags=' -po {0}'.format(mdout), gmxexec=self.gmxexec)
+        gmx.grompp(f=mdp, c=inStr, p=top, o=tpr, maxwarn=-1, other_flags=' -po {0}'.format(mdout), gmxexec=self.gmxexec)
         clean_gromacs_backup_files( simpath )     
         
 
