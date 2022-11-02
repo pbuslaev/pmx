@@ -420,6 +420,7 @@ class AbsoluteDG:
 
     def __init__(self, **kwargs):
         
+        
         # set gmxlib path if it is not set
         if 'GMXLIB' not in os.environ.keys():
             gmx.set_gmxlib()
@@ -461,7 +462,7 @@ class AbsoluteDG:
         # simulation setup
         self.ff = 'amber99sb-star-ildn-mut.ff'
         self.boxshape = 'dodecahedron'
-        self.boxd = 1.5
+        self.boxd = 1.2
         self.water = 'tip3p'
         self.conc = 0.15
         self.pname = 'NaJ'
@@ -611,9 +612,10 @@ class AbsoluteDG:
             molListHolo = self._assemble_system_structures( lig=lig, case='holo' )
             # apo structures
             molListApo = self._assemble_system_structures( lig=lig, case='apo' ) 
-            ####### water ###########
-            # to be implemented
-            # very simple: self._assemble_ligand_structure( lig=lig )
+            if self.bDSSB==False:
+                ####### water ###########
+                self._assemble_ligand_structure( lig=lig, case='holo' )
+                self._assemble_ligand_structure( lig=lig, case='apo' )
 
             print('--- Assembling topologies: {0} ---'.format(lig))
             ####### protein or DSSB ###########            
@@ -622,8 +624,10 @@ class AbsoluteDG:
             # apo topologies
             self._assemble_system_topologies( lig=lig, case='apo', molList=molListApo )
             ####### water ###########
-            # to be implemented
-            # very simple: self._assemble_ligand_topology( lig=lig )      
+            if self.bDSSB==False:
+                ####### water ###########
+                self._assemble_ligand_topologies( lig=lig, case='holo', molList=molListHolo )
+                self._assemble_ligand_topologies( lig=lig, case='apo', molList=molListHolo )
             
             
     def _assemble_system_structures( self, lig='', case='holo' ):
@@ -707,7 +711,7 @@ class AbsoluteDG:
                                pdb2=ligStrFile,
                                outfile=systemStrFile,
                                bLongestAxis=self.bdssbLongestAxis)            
-        molList.append(self.ligands[lig]['ligand'])       
+            molList.append(self.ligands[lig]['ligand'])       
             
         ######### PLACE WATER IN THE END ######## 
         # water comes last
@@ -715,6 +719,20 @@ class AbsoluteDG:
         
         return(molList)
     
+    def _assemble_ligand_structure( self, lig='', case='apo' ):
+        
+        ####### PATHS ######                        
+        strPathLig = self._get_specific_path( lig=lig, case='holo', bStrTop=True ) # holo structure has the ligand
+        outPath = self._get_specific_path( lig=lig, state=case, wp='water' )
+
+        ######## LIGAND #####
+        # start the init.pdb with the ligand structure
+        # ligand always comes from the holo folder
+        ligStrFile = '{0}/{1}'.format(strPathLig,self.ligands[lig]['ligand'].structPdb)
+        systemStrFile = '{0}/system.pdb'.format(outPath)
+        cmd = 'cp {0} {1}'.format(ligStrFile,systemStrFile)
+        os.system(cmd)
+
         
     def _assemble_system_topologies( self, lig='', case='holo', molList=[] ):
         
@@ -728,17 +746,17 @@ class AbsoluteDG:
             outPathHolo = self._get_specific_path( lig=lig, state='holo', wp='protein' )                    
             
 
-        ##### HYBRID TOPOLOGIES IF DSSB
+        ##### HYBRID TOPOLOGIES (in both cases DSSB/noDSSB)
         # create hybrid topologies
         ffitpfile = self.ffitp[lig][case]
-        if self.bDSSB==True:
-            itpfile = '{0}/{1}'.format(strPath,self.ligands[lig]['ligand'].topItp)
-            itpfileA = '{0}A.itp'.format(self._name_without_extension(itpfile))
-            itpfileB = '{0}B.itp'.format(self._name_without_extension(itpfile))
-            ffitpfile = self.ffitp[lig][case]
-            topDecoupleObj = TOPdecouple( ff=self.ff, itpfile=itpfile, itpfileA=itpfileA, itpfileB=itpfileB, ffitpfile=ffitpfile )
-            newMolNames = topDecoupleObj.newMolNames # for DSSB the molecules are renamed in the ITP
-            newMolItps = [itpfileA,itpfileB]    
+#        if self.bDSSB==True:
+        itpfile = '{0}/{1}'.format(strPath,self.ligands[lig]['ligand'].topItp)
+        itpfileA = '{0}A.itp'.format(self._name_without_extension(itpfile))
+        itpfileB = '{0}B.itp'.format(self._name_without_extension(itpfile))
+        ffitpfile = self.ffitp[lig][case]
+        topDecoupleObj = TOPdecouple( ff=self.ff, itpfile=itpfile, itpfileA=itpfileA, itpfileB=itpfileB, ffitpfile=ffitpfile )
+        newMolNames = topDecoupleObj.newMolNames # for DSSB the molecules are renamed in the ITP
+        newMolItps = [itpfileA,itpfileB]    
         
         
         ####### CREATE TOP ######
@@ -771,7 +789,6 @@ class AbsoluteDG:
             mols.append([water.molItpName,water.molNumber])
         
         self._create_top(fname=topFname,itp=itps,mols=mols,systemName=systemName)         
-        
         
         ####### INTERMOLECULAR RESTRAINTS ######
         # for holo state generate the restraints
@@ -857,6 +874,32 @@ class AbsoluteDG:
         fp.close()                    
             
                        
+    def _assemble_ligand_topologies( self, lig='', case='holo', molList=[] ):
+
+        ##### PATHS #####        
+        strPath = self._get_specific_path( lig=lig, case=case, bStrTop=True )
+        outPath = self._get_specific_path( lig=lig, state=case, wp='water' )
+
+        ##### HYBRID TOPOLOGIES for ligands #####
+        # already generated when processing protein-ligand branch
+        # create hybrid topologies
+        ffitpfile = self.ffitp[lig][case]
+        itpfile = '{0}/{1}'.format(strPath,self.ligands[lig]['ligand'].topItp)
+        ffitpfile = self.ffitp[lig][case]
+
+        ####### CREATE TOP ######
+        topFname = '{0}/topol.top'.format(outPath)
+        itps = [ os.path.relpath( self.ffitp[lig][case], start=outPath ) ]
+        systemName = 'ligand in water'
+        mols = []
+        for mol in molList:
+            molName = mol.molItpName
+            if molName==self.ligands[lig]['ligand'].molItpName:
+                molItp = os.path.relpath( itpfile,start=outPath )
+                itps.append( molItp )
+                mols.append([molName,mol.molNumber])   
+            
+        self._create_top(fname=topFname,itp=itps,mols=mols,systemName=systemName)         
                     
     def _collect_topologies( self ):
         
@@ -872,7 +915,10 @@ class AbsoluteDG:
                 self._collect_topologies_apo_holo( case='holo', lig=lig, mol=mol, fflist=fflist )
                 
                 # collect apo
-                self._collect_topologies_apo_holo( case='apo', lig=lig, mol=mol )    
+                if self.apoCase!=None:
+                    self._collect_topologies_apo_holo( case='apo', lig=lig, mol=mol )
+                else:
+                    self._copy_topologies_holo_to_apo( lig=lig )
                                 
             # one ff file
             # holo
@@ -924,6 +970,12 @@ class AbsoluteDG:
         # fftop collect into one ff
         if sourceCase.topFFItp!=None:
             fflist.append(sourceCase.topFFItpPath)
+    
+    def _copy_topologies_holo_to_apo( self, lig ):
+        sourceFolder = '{0}/{1}/strTopFolder_holo'.format(self.workPath,lig)
+        targetFolder = '{0}/{1}/strTopFolder_apo'.format(self.workPath,lig)
+        cmd = 'cp {0}/* {1}/.'.format(sourceFolder,targetFolder)
+        os.system(cmd)
             
 
     def _read_path( self, path ):
@@ -1109,7 +1161,6 @@ class AbsoluteDG:
             ####### DSSB or Protein/water #########
             # consider two scenarious: DSSB and protein/water separately
             if self.bDSSB==True:
-                
                 for case,state in zip(['holo','apo'],self.states): 
                     # water
                     strPath = self._get_specific_path( lig=lig, case=case, bStrTop=True )
@@ -1129,9 +1180,9 @@ class AbsoluteDG:
                     mdp = '{0}/em_l0.mdp'.format(self.mdpPath)
                     tpr = '{0}/tpr.tpr'.format(outPath)
                     mdout = '{0}/mdout.mdp'.format(outPath)
-                    gmx.grompp(f=mdp, c=waterPdb, p=outTop, o=tpr, maxwarn=-1, other_flags=' -po {0}'.format(mdout), gmxexec=self.gmxexec)        
+                    gmx.grompp(f=mdp, c=waterPdb, p=outTop, o=tpr, maxwarn=-1, other_flags=' -po {0}'.format(mdout), gmxexec=self.gmxexec) 
                     gmx.genion(s=tpr, p=outTop, o=ionsPdb, conc=self.conc, neutral=True, 
-                          other_flags=' -pname {0} -nname {1}'.format(self.pname, self.nname), gmxexec=self.gmxexec)
+                          other_flags=' -pname {0} -nname {1}'.format(self.pname, self.nname), gmxexec=self.gmxexec)                    
                     
                     # at the end of the file ii restraints need to be added
                     if self.iiRestrFile[case]!=None:
@@ -1140,11 +1191,45 @@ class AbsoluteDG:
                     # clean up
                     clean_gromacs_backup_files( outPath ) 
             else:
-                print('TODO')  
+                for case,state in zip(['holo','apo'],self.states): 
+                    for wp in ['water','protein']:
+                        # paths and init files
+                        strPath = self._get_specific_path( lig=lig, case=case, bStrTop=True )
+                        outPath = self._get_specific_path( lig=lig, case=case, wp=wp, state=state )
+                        initPdb = '{0}/system.pdb'.format(outPath)
+                        initTop = '{0}/topol.top'.format(outPath)
+
+                        # box
+                        boxPdb = '{0}/box.pdb'.format(outPath)
+                        gmx.editconf(initPdb, o=boxPdb, bt=self.boxshape, d=self.boxd, gmxexec=self.gmxexec) 
+
+                        # work with the topology backup
+                        outTop = '{0}/top.top'.format(outPath)
+                        copy_files_folders( initTop, outTop )
+                    
+                        waterPdb = '{0}/water.pdb'.format(outPath)
+                        gmx.solvate(boxPdb, cs='spc216.gro', p=outTop, o=waterPdb, gmxexec=self.gmxexec) 
+                    
+                        # ions
+                        ionsPdb = '{0}/ions.pdb'.format(outPath)
+                        mdp = '{0}/em_l0.mdp'.format(self.mdpPath)
+                        if 'B' in state:
+                            mdp = '{0}/em_l1.mdp'.format(self.mdpPath)
+                        tpr = '{0}/tpr.tpr'.format(outPath)
+                        mdout = '{0}/mdout.mdp'.format(outPath)
+                        gmx.grompp(f=mdp, c=waterPdb, p=outTop, o=tpr, maxwarn=-1, other_flags=' -po {0}'.format(mdout), gmxexec=self.gmxexec)        
+                        gmx.genion(s=tpr, p=outTop, o=ionsPdb, conc=self.conc, neutral=True, other_flags=' -pname {0} -nname {1}'.format(self.pname, self.nname), gmxexec=self.gmxexec)                     
+                    
+                        # at the end of the file ii restraints need to be added
+                        if self.iiRestrFile[case]!=None and wp!='water':
+                            self._add_to_topfile( outTop, self.iiRestrFile[case] )
+                    
+                        # clean up
+                        clean_gromacs_backup_files( outPath ) 
                 
                 
-    def _prepare_single_tpr(self, state='stateA', simpath='', toppath='', simType='em', topfile='topol.top', 
-                            inStr=None, mdp='', frNum=0):  
+    def _prepare_single_tpr( self, state='stateA', simpath='', toppath='', simType='em', topfile='topol.top', 
+                            inStr=None, mdp='', frNum=0 ):  
              
         top = '{0}/{1}'.format(toppath,topfile)
         tpr = '{0}/tpr.tpr'.format(simpath)
@@ -1152,7 +1237,7 @@ class AbsoluteDG:
         if ('transition' in simType) or ('ti' in simType):
             tpr = '{0}/ti{1}.tpr'.format(simpath,frNum)        
             
-        gmx.grompp(f=mdp, c=inStr, p=top, o=tpr, maxwarn=-1, other_flags=' -po {0}'.format(mdout), gmxexec=self.gmxexec)
+        gmx.grompp(gmxexec=gmxexec,f=mdp, c=inStr, p=top, o=tpr, maxwarn=-1, other_flags=' -po {0}'.format(mdout), gmxexec=self.gmxexec)
         clean_gromacs_backup_files( simpath )     
         
 
