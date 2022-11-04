@@ -1333,10 +1333,10 @@ class AbsoluteDG:
                             if self.bGenTiTpr==True:
                                 for i in range(1,self.frameNum+1):
                                     inStr = '{0}/frame{1}.gro'.format(simpath,i)
-                                    tpr_path = self._prepare_single_tpr( state=state, simpath=simpath, 
+                                    tpr_path = self._prepare_single_tpr(state=state, simpath=simpath, 
                                                   toppath=toppath, simType=simType, 
                                                   topfile=topfile,
-                                                  inStr=inStr, mdp=mdp, frNum=i, gmxexec=self.gmxexec, verbose=self.bVerbose )
+                                                  inStr=inStr, mdp=mdp, frNum=i, verbose=self.bVerbose)
                                     # Append TPR to list of TPRs.
                                     tpr_paths.append(tpr_path)
                                     # if tpr is generated, clean gro to save space
