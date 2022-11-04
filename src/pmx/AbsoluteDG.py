@@ -1387,6 +1387,75 @@ class AbsoluteDG:
             cmd3 = '$GMXRUN -s ti$i.tpr -dhdl dhdl$i'
             cmd4 = 'done'
             job.cmds = [cmd1,cmd2,cmd3,cmd4]
+
+    def _run_sim( self, tprfile, simpath ):
+        trrfile = '{0}/traj.trr'.format(simpath)
+        xtcfile = '{0}/trj.xtc'.format(simpath)
+        enerfile = '{0}/ener.edr'.format(simpath)
+        cptfile = '{0}/state.cpt'.format(simpath)
+        mdlogfile = '{0}/md.log'.format(simpath)
+        outfile = '{0}/confout.gro'.format(simpath)
+        dhdlfile = '{0}/dhdl.xvg'.format(simpath)
+        other_flags = '-o {0} -x {1} -e {2} -cpo {3} -g {4} -c {5} -dhdl {6}'.format(trrfile,xtcfile,enerfile,cptfile,mdlogfile,outfile,dhdlfile)
+        gmx.mdrun(s=tprfile, deffnm='sim', other_flags=other_flags, gmxexec=self.gmxexec, verbose=self.bVerbose)
+
+    def run_simulation( self, ligs=None, simType='em', prevSim=None, bLig=True, bProt=True, bDssb=False):
+        print('-----------------------------------------')
+        print('Running simulation: {0}'.format(simType))
+        print('-----------------------------------------')
+
+        # check which case to use
+        if self.bDSSB==True:
+            bDssb = True
+            bLig = False
+            bProt = False
+        if bLig==False and bProt==False and bDssb==False:
+            print('No simulation to run')
+            return(0)
+        
+        # ligand/protein/dssb
+        wpcases = []
+        if bDssb==True:
+            wpcases.append('dssb')
+        if bLig==True:
+            wpcases.append('water')
+        if bProt==True:
+            wpcases.append('protein')         
+        
+        # mdp
+        mdpPrefix = simType
+        if ('transition' in simType) or ('ti' in simType):
+            mdpPrefix = 'ti'
+            
+        # ligands/edges
+        if ligs==None:
+            ligs = self.ligList
+            
+        # over ligands
+        for lig in ligs:      
+            print('---- lig: {0}'.format(lig))
+            # water, protein or dssb
+            for wp in wpcases:
+                print('---- ---- water/prot: {0}'.format(wp))
+                # states: A B
+                for state in self.states:
+                    print('---- ---- ---- state: {0}'.format(state))
+                    # replicas: 1 2 3
+                    for r in range(1,self.replicas+1):
+                        print('---- ---- ---- ---- run: {0}'.format(r))
+
+                        # path for the simulations of simType
+                        simpath = self._get_specific_path(lig=lig,wp=wp,state=state,r=r,sim=simType)
+                        tprfile = '{0}/tpr.tpr'.format(simpath)
+
+                        self._run_sim( tprfile, simpath )
+
+                        # transitions is special
+#                        if ('transition' in simType) or ('ti' in simType):
+#                            if self.bGenTiTpr==True:
+#                                for i in range(1,self.frameNum+1):
+#                                    inStr = '{0}/frame{1}.gro'.format(simpath,i)
+#                                    self._prepare_single_tpr( state=state, simpath=simpath, 
             
                         
     def prepare_jobscripts( self, ligs=None, simType='em', bLig=False, bProt=False, 
