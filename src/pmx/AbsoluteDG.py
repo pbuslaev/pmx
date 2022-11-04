@@ -1229,8 +1229,10 @@ class AbsoluteDG:
                         clean_gromacs_backup_files( outPath ) 
                 
                 
-    def _prepare_single_tpr( self, state='stateA', simpath='', toppath='', simType='em', topfile='topol.top', 
-                            inStr=None, mdp='', frNum=0 ):  
+    def _prepare_single_tpr(self, state='stateA', simpath='', toppath='', simType='em', topfile='topol.top', 
+                            inStr=None, mdp='', frNum=0):
+        """Prepares a single TPR file by calling gmx.grompp and returns its path.
+        """
              
         top = '{0}/{1}'.format(toppath,topfile)
         tpr = '{0}/tpr.tpr'.format(simpath)
@@ -1239,14 +1241,20 @@ class AbsoluteDG:
             tpr = '{0}/ti{1}.tpr'.format(simpath,frNum)        
             
         gmx.grompp(f=mdp, c=inStr, p=top, o=tpr, maxwarn=-1, other_flags=' -po {0}'.format(mdout), gmxexec=self.gmxexec, verbose=self.bVerbose)
-        clean_gromacs_backup_files( simpath )     
+        clean_gromacs_backup_files(simpath)
+        return tpr
         
 
-    def prepare_simulation( self, ligs=None, simType='em', prevSim=None, bLig=True, bProt=True, bDssb=False,
-                            bGenTiTpr=False):
+    def prepare_simulation(self, ligs=None, simType='em', prevSim=None, bLig=True, bProt=True, bDssb=False,
+                           bGenTiTpr=False):
+        """Prepares TPR files across all systems and states for a specific simulation type, 
+        and returns the list of TPR files created.
+        """
         print('-----------------------------------------')
         print('Preparing simulation: {0}'.format(simType))
         print('-----------------------------------------')
+
+        tpr_paths = []  # List of TPR files to be returned.
         
         # check which case to use
         if self.bDSSB==True:
@@ -1325,17 +1333,23 @@ class AbsoluteDG:
                             if self.bGenTiTpr==True:
                                 for i in range(1,self.frameNum+1):
                                     inStr = '{0}/frame{1}.gro'.format(simpath,i)
-                                    self._prepare_single_tpr( state=state, simpath=simpath, 
+                                    tpr_path = self._prepare_single_tpr( state=state, simpath=simpath, 
                                                   toppath=toppath, simType=simType, 
                                                   topfile=topfile,
                                                   inStr=inStr, mdp=mdp, frNum=i, gmxexec=self.gmxexec, verbose=self.bVerbose )
+                                    # Append TPR to list of TPRs.
+                                    tpr_paths.append(tpr_path)
                                     # if tpr is generated, clean gro to save space
                                     os.remove(inStr)
+
                         else:
-                            self._prepare_single_tpr( state=state, simpath=simpath, 
+                            tpr_path = self._prepare_single_tpr(state=state, simpath=simpath, 
                                                   toppath=toppath, simType=simType, 
                                                   topfile=topfile,
-                                                  inStr=inStr, mdp=mdp )                           
+                                                  inStr=inStr, mdp=mdp)
+                            # Append TPR to list of TPRs.
+                            tpr_paths.append(tpr_path)
+        return tpr_paths
                         
                         
     def _extract_snapshots( self, eqpath='', tipath='', startTime=0.0 ):
