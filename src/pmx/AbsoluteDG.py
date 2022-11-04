@@ -1241,7 +1241,7 @@ class AbsoluteDG:
         clean_gromacs_backup_files( simpath )     
         
 
-    def prepare_simulation( self, ligs=None, simType='em', prevSim=None, bLig=False, bProt=False, bDssb=False,
+    def prepare_simulation( self, ligs=None, simType='em', prevSim=None, bLig=True, bProt=True, bDssb=False,
                             bGenTiTpr=False):
         print('-----------------------------------------')
         print('Preparing simulation: {0}'.format(simType))
@@ -1257,12 +1257,13 @@ class AbsoluteDG:
             return(0)
         
         # ligand/protein/dssb
+        wpcases = []
         if bDssb==True:
-            wp = 'dssb'
+            wpcases.append('dssb')
         if bLig==True:
-            wp = 'water'
+            wpcases.append('water')
         if bProt==True:
-            wp = 'protein'             
+            wpcases.append('protein')         
         
         # mdp
         mdpPrefix = simType
@@ -1275,12 +1276,14 @@ class AbsoluteDG:
             
         # over ligands
         for lig in ligs:      
-            # states: A B
-            for state in self.states:
-                toppath = self._get_specific_path(lig=lig,wp=wp,state=state)
-                topfile = 'top.top'
-                # replicas: 1 2 3
-                for r in range(1,self.replicas+1):
+            # water, protein or dssb
+            for wp in wpcases:
+                # states: A B
+                for state in self.states:
+                    toppath = self._get_specific_path(lig=lig,wp=wp,state=state)
+                    topfile = 'top.top'
+                    # replicas: 1 2 3
+                    for r in range(1,self.replicas+1):
 
                         # path for the simulations of simType
                         simpath = self._get_specific_path(lig=lig,wp=wp,state=state,r=r,sim=simType)
