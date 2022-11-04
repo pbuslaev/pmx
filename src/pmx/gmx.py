@@ -8,6 +8,7 @@ import os
 from .utils import which
 from subprocess import call
 from .library import mdps
+import subprocess
 
 
 def get_gmx():
@@ -30,7 +31,7 @@ def set_gmxlib():
     os.environ['GMXLIB'] = gmxlib
 
 
-def editconf(f, o='editconf.gro', bt='cubic', d=1.2, other_flags='', gmxexec=None):
+def editconf(f, o='editconf.gro', bt='cubic', d=1.2, other_flags='', verbose=True, gmxexec=None):
     """Simple ``gmx editconf`` wrapper.
 
     Parameters
@@ -43,6 +44,10 @@ def editconf(f, o='editconf.gro', bt='cubic', d=1.2, other_flags='', gmxexec=Non
         box type:triclinic, cubic, dodecahedron, or octahedron
     d : float
         distance between the solute and the box (nm)
+    verbose : bool
+        full gromacs output (True)
+    gmxexec : str
+        gmx with the full path
     other_flags : str, optional
         additional flags to pass as you would type them in the shell
 
@@ -55,13 +60,18 @@ def editconf(f, o='editconf.gro', bt='cubic', d=1.2, other_flags='', gmxexec=Non
     if gmxexec is None:
         gmxexec = get_gmx()
 
-    call('{gmxexec} editconf -f {f} -o {o} -bt {bt} -d {d} '
+    if verbose:
+        call('{gmxexec} editconf -f {f} -o {o} -bt {bt} -d {d} '
          '{other_flags}'.format(gmxexec=gmxexec, f=f, o=o, bt=bt, d=d, other_flags=other_flags),
          shell=True)
+    else:
+        call('{gmxexec} editconf -f {f} -o {o} -bt {bt} -d {d} '
+         '{other_flags}'.format(gmxexec=gmxexec, f=f, o=o, bt=bt, d=d, other_flags=other_flags),
+         shell=True,stdout=subprocess.DEVNULL,stderr=subprocess.STDOUT)
 
 
 def pdb2gmx(f, o='pdb2gmx.gro', p='topol.top', ff='amber99sb-star-ildn-mut',
-            water='tip3p', other_flags='', gmxexec=None):
+            water='tip3p', other_flags='', verbose=True, gmxexec=None):
     """Simple ``gmx pdb2gmx`` wrapper.
 
     Parameters
@@ -76,6 +86,10 @@ def pdb2gmx(f, o='pdb2gmx.gro', p='topol.top', ff='amber99sb-star-ildn-mut',
         forcefield. Default is "amber99sb-star-ildn-mut".
     water : str, optional
         water model. Default is "tip3p".
+    verbose : bool
+        full gromacs output (True)
+    gmxexec : str
+        gmx with the full path
     other_flags : str, optional
         additional flags to pass as you would type them in the shell
 
@@ -88,13 +102,16 @@ def pdb2gmx(f, o='pdb2gmx.gro', p='topol.top', ff='amber99sb-star-ildn-mut',
     if gmxexec is None:
         gmxexec = get_gmx()
 
-    call('{gmxexec} pdb2gmx -f {f} -o {o} -p {p} -ff {ff} -water {water} '
-         '{other_flags}'.format(gmxexec=gmxexec, f=f, o=o, p=p, ff=ff, water=water, other_flags=other_flags),
-         shell=True)
+    if verbose:
+        call('{gmxexec} pdb2gmx -f {f} -o {o} -p {p} -ff {ff} -water {water} '
+         '{other_flags}'.format(gmxexec=gmxexec, f=f, o=o, p=p, ff=ff, water=water, other_flags=other_flags), shell=True)
+    else:
+        call('{gmxexec} pdb2gmx -f {f} -o {o} -p {p} -ff {ff} -water {water} '
+         '{other_flags}'.format(gmxexec=gmxexec, f=f, o=o, p=p, ff=ff, water=water, other_flags=other_flags), shell=True,stdout=subprocess.DEVNULL,stderr=subprocess.STDOUT)
 
 
 def solvate(cp, cs='spc216.gro', p='topol.top', o='solvate.gro',
-            other_flags='', gmxexec=None):
+            other_flags='', verbose=True, gmxexec=None):
     """Simple ``gmx solvate`` wrapper.
 
     Parameters
@@ -107,6 +124,10 @@ def solvate(cp, cs='spc216.gro', p='topol.top', o='solvate.gro',
         name of topology file. Default is "topol.top"
     o : str, optional
         name of output structure file. Default is "solvate.gro"
+    verbose : bool
+        full gromacs output (True)
+    gmxexec : str
+        gmx with the full path
     other_flags : str, optional
         additional flags to pass as you would type them in the shell
 
@@ -119,12 +140,15 @@ def solvate(cp, cs='spc216.gro', p='topol.top', o='solvate.gro',
     if gmxexec is None:
         gmxexec = get_gmx()
 
-    call('{gmxexec} solvate -cp {cp} -cs {cs} -p {p} -o {o} '
-         '{other_flags}'.format(gmxexec=gmxexec, cp=cp, cs=cs, p=p, o=o, other_flags=other_flags),
-         shell=True)
+    if verbose:
+        call('{gmxexec} solvate -cp {cp} -cs {cs} -p {p} -o {o} '
+         '{other_flags}'.format(gmxexec=gmxexec, cp=cp, cs=cs, p=p, o=o, other_flags=other_flags),shell=True)
+    else:
+        call('{gmxexec} solvate -cp {cp} -cs {cs} -p {p} -o {o} '
+         '{other_flags}'.format(gmxexec=gmxexec, cp=cp, cs=cs, p=p, o=o, other_flags=other_flags),shell=True,stdout=subprocess.DEVNULL,stderr=subprocess.STDOUT)
 
 
-def grompp(f, c, p, o='grompp.tpr', maxwarn=0, other_flags='', gmxexec=None):
+def grompp(f, c, p, o='grompp.tpr', maxwarn=0, other_flags='', verbose=True, gmxexec=None):
     """Simple ``gmx grompp`` wrapper.
 
     Parameters
@@ -137,6 +161,10 @@ def grompp(f, c, p, o='grompp.tpr', maxwarn=0, other_flags='', gmxexec=None):
         input topology file. Default is "topol.top"
     o : str, optional
         output tpr file. Default is "grompp.tpr"
+    verbose : bool
+        full gromacs output (True)
+    gmxexec : str
+        gmx with the full path
     maxwarn : int, optional
         number of allowed warnings. Default is 0.
     other_flags : str, optional
@@ -151,13 +179,16 @@ def grompp(f, c, p, o='grompp.tpr', maxwarn=0, other_flags='', gmxexec=None):
     if gmxexec is None:
         gmxexec = get_gmx()
 
-    call('{gmxexec} grompp -f {f} -c {c} -r {c} -p {p} -o {o} -maxwarn {maxwarn}'
-         '{other_flags}'.format(gmxexec=gmxexec, f=f, c=c, p=p, o=o, maxwarn=maxwarn, other_flags=other_flags),
-         shell=True)
+    if verbose:
+        call('{gmxexec} grompp -f {f} -c {c} -r {c} -p {p} -o {o} -maxwarn {maxwarn}'
+         '{other_flags}'.format(gmxexec=gmxexec, f=f, c=c, p=p, o=o, maxwarn=maxwarn, other_flags=other_flags), shell=True)
+    else:
+        call('{gmxexec} grompp -f {f} -c {c} -r {c} -p {p} -o {o} -maxwarn {maxwarn}'
+         '{other_flags}'.format(gmxexec=gmxexec, f=f, c=c, p=p, o=o, maxwarn=maxwarn, other_flags=other_flags), shell=True,stdout=subprocess.DEVNULL,stderr=subprocess.STDOUT)
 
 
 def genion(s, p, o='genion.gro', np=0, nn=0, conc=0.15, neutral=True,
-           other_flags='', gmxexec=None):
+           other_flags='', verbose=True, gmxexec=None):
 
     """Simple ``gmx genion`` wrapper. By default, group 'SOL' will be replaced
     by ions.
@@ -180,6 +211,10 @@ def genion(s, p, o='genion.gro', np=0, nn=0, conc=0.15, neutral=True,
         whether to add enough ions to neutralise the system. These
         ions are added on top of those specified with -np/-nn or -conc.
         Default is True.
+    verbose : bool
+        full gromacs output (True)
+    gmxexec : str
+        gmx with the full path
     other_flags : str, optional
         additional flags to pass as you would type them in the shell
 
@@ -195,13 +230,16 @@ def genion(s, p, o='genion.gro', np=0, nn=0, conc=0.15, neutral=True,
     if neutral is True:
         other_flags += ' -neutral'
 
-    call('echo "SOL" | {gmxexec} genion -s {s} -p {p} -o {o} -np {np} -nn {nn} -conc {conc} '
-         '{other_flags}'.format(gmxexec=gmxexec, s=s, p=p, o=o, np=np, nn=nn, conc=conc, other_flags=other_flags),
-         shell=True)
+    if verbose:
+        call('echo "SOL" | {gmxexec} genion -s {s} -p {p} -o {o} -np {np} -nn {nn} -conc {conc} '
+         '{other_flags}'.format(gmxexec=gmxexec, s=s, p=p, o=o, np=np, nn=nn, conc=conc, other_flags=other_flags), shell=True)
+    else:
+        call('echo "SOL" | {gmxexec} genion -s {s} -p {p} -o {o} -np {np} -nn {nn} -conc {conc} '
+         '{other_flags}'.format(gmxexec=gmxexec, s=s, p=p, o=o, np=np, nn=nn, conc=conc, other_flags=other_flags), shell=True,stdout=subprocess.DEVNULL,stderr=subprocess.STDOUT)
 
 
 def trjconv(f, s, o='trjconv.xtc', ur='compact', pbc='none', fit='none',
-            out_grp='System', fit_grp='C-alpha', sep=False, other_flags='', gmxexec=None):
+            out_grp='System', fit_grp='C-alpha', sep=False, other_flags='', verbose=True, gmxexec=None):
     """Simple ``gmx trjconv`` wrapper.
 
     Parameters
@@ -229,6 +267,10 @@ def trjconv(f, s, o='trjconv.xtc', ur='compact', pbc='none', fit='none',
     sep : bool, optional
         write each frame to a separate .gro, .g96 or .pdb file.
         Default is False.
+    verbose : bool
+        full gromacs output (True)
+    gmxexec : str
+        gmx with the full path
     other_flags : str, optional
         additional flags to pass as you would type them in the shell
 
@@ -245,17 +287,24 @@ def trjconv(f, s, o='trjconv.xtc', ur='compact', pbc='none', fit='none',
         other_flags += ' -sep'
 
     if fit == 'none':
-        call('echo "{out_grp}" | {gmxexec} trjconv -f {f} -s {s} -o {o} -ur {ur} -pbc {pbc}'
-             '{other_flags}'.format(gmxexec=gmxexec, f=f, s=s, o=o, ur=ur, pbc=pbc, out_grp=out_grp, other_flags=other_flags),
-             shell=True)
+        if verbose:
+            call('echo "{out_grp}" | {gmxexec} trjconv -f {f} -s {s} -o {o} -ur {ur} -pbc {pbc}'
+             '{other_flags}'.format(gmxexec=gmxexec, f=f, s=s, o=o, ur=ur, pbc=pbc, out_grp=out_grp, other_flags=other_flags),shell=True)
+        else:
+            call('echo "{out_grp}" | {gmxexec} trjconv -f {f} -s {s} -o {o} -ur {ur} -pbc {pbc}'
+             '{other_flags}'.format(gmxexec=gmxexec, f=f, s=s, o=o, ur=ur, pbc=pbc, out_grp=out_grp, other_flags=other_flags),shell=True,stdout=subprocess.DEVNULL,stderr=subprocess.STDOUT)
     else:
-        call('echo "{fit_grp}" "{out_grp}" | {gmxexec} trjconv -f {f} -s {s} -o {o} -ur {ur} -pbc {pbc} -fit {fit}'
+        if verbose:
+            call('echo "{fit_grp}" "{out_grp}" | {gmxexec} trjconv -f {f} -s {s} -o {o} -ur {ur} -pbc {pbc} -fit {fit}'
              '{other_flags}'.format(gmxexec=gmxexec, f=f, s=s, o=o, ur=ur, pbc=pbc, fit=fit,
-                                    out_grp=out_grp, fit_grp=fit_grp, other_flags=other_flags),
-             shell=True)
+                                   out_grp=out_grp, fit_grp=fit_grp, other_flags=other_flags),shell=True)
+        else:
+            call('echo "{fit_grp}" "{out_grp}" | {gmxexec} trjconv -f {f} -s {s} -o {o} -ur {ur} -pbc {pbc} -fit {fit}'
+             '{other_flags}'.format(gmxexec=gmxexec, f=f, s=s, o=o, ur=ur, pbc=pbc, fit=fit,
+                                   out_grp=out_grp, fit_grp=fit_grp, other_flags=other_flags),shell=True,stdout=subprocess.DEVNULL,stderr=subprocess.STDOUT)
 
 
-def mdrun(s, deffnm='md', verbose=False, other_flags='', gmxexec=None):
+def mdrun(s, deffnm='md', other_flags='', verbose=True, gmxexec=None):
     """Simple ``gmx mdrun`` wrapper.
 
     Parameters
@@ -266,6 +315,8 @@ def mdrun(s, deffnm='md', verbose=False, other_flags='', gmxexec=None):
         set the default filename for all file options. Default is 'md'.
     verbose : bool, optional
         whether to activate verbose flag in Gromacs mdrun. Default is False.
+    gmxexec : str
+        gmx with the full path
     other_flags : str, optional
         additional flags to pass as you would type them in the shell.
 
@@ -281,8 +332,10 @@ def mdrun(s, deffnm='md', verbose=False, other_flags='', gmxexec=None):
     if verbose is True:
         other_flags += ' -v'
 
-    call('{gmxexec} mdrun -s {s} -deffnm {deffnm} {other_flags}'.format(gmxexec=gmxexec, s=s, deffnm=deffnm, other_flags=other_flags),
-         shell=True)
+    if verbose:
+        call('{gmxexec} mdrun -s {s} -deffnm {deffnm} {other_flags}'.format(gmxexec=gmxexec, s=s, deffnm=deffnm, other_flags=other_flags),shell=True)
+    else:
+        call('{gmxexec} mdrun -s {s} -deffnm {deffnm} {other_flags}'.format(gmxexec=gmxexec, s=s, deffnm=deffnm, other_flags=other_flags),shell=True,stdout=subprocess.DEVNULL,stderr=subprocess.STDOUT)
 
 
 def write_mdp(mdp, fout='mdpfile.mdp', nsteps=10000, cutoff=1.0, T=300):
