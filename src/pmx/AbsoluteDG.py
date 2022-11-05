@@ -1336,7 +1336,7 @@ class AbsoluteDG:
                                     tpr_path = self._prepare_single_tpr(state=state, simpath=simpath, 
                                                   toppath=toppath, simType=simType, 
                                                   topfile=topfile,
-                                                  inStr=inStr, mdp=mdp, frNum=i, verbose=self.bVerbose)
+                                                  inStr=inStr, mdp=mdp, frNum=i)
                                     # Append TPR to list of TPRs.
                                     tpr_paths.append(tpr_path)
                                     # if tpr is generated, clean gro to save space
