@@ -775,7 +775,7 @@ class AbsoluteDG:
             else:
                 molName = mol.molItpName
                 # in case of DSSB need to replace molecule names, as there are now two different molecules
-                if molName==self.ligands[lig]['ligand'].molItpName and self.bDSSB==True:
+                if molName==self.ligands[lig]['ligand'].molItpName: # and self.bDSSB==True:
                     molName = newMolNames.pop(0)
                     molItp = os.path.relpath( newMolItps.pop(0),start=outPath )
                     itps.append( molItp )
@@ -886,6 +886,7 @@ class AbsoluteDG:
         # create hybrid topologies
         ffitpfile = self.ffitp[lig][case]
         itpfile = '{0}/{1}'.format(strPath,self.ligands[lig]['ligand'].topItp)
+        itpfileA = '{0}A.itp'.format(self._name_without_extension(itpfile))
         ffitpfile = self.ffitp[lig][case]
 
         ####### CREATE TOP ######
@@ -896,7 +897,7 @@ class AbsoluteDG:
         for mol in molList:
             molName = mol.molItpName
             if molName==self.ligands[lig]['ligand'].molItpName:
-                molItp = os.path.relpath( itpfile,start=outPath )
+                molItp = os.path.relpath( itpfileA,start=outPath )
                 itps.append( molItp )
                 mols.append([molName,mol.molNumber])   
             
