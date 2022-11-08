@@ -888,6 +888,7 @@ class AbsoluteDG:
         itpfile = '{0}/{1}'.format(strPath,self.ligands[lig]['ligand'].topItp)
         itpfileA = '{0}A.itp'.format(self._name_without_extension(itpfile))
         ffitpfile = self.ffitp[lig][case]
+        itp = TopolBase(itpfileA)
 
         ####### CREATE TOP ######
         topFname = '{0}/topol.top'.format(outPath)
@@ -897,6 +898,7 @@ class AbsoluteDG:
         for mol in molList:
             molName = mol.molItpName
             if molName==self.ligands[lig]['ligand'].molItpName:
+                molName = itp.name
                 molItp = os.path.relpath( itpfileA,start=outPath )
                 itps.append( molItp )
                 mols.append([molName,mol.molNumber])   
