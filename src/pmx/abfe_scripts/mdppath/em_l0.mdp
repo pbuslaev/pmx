@@ -39,9 +39,9 @@ constraints            = none
 ;----------------------------------------------------
 coulombtype            = PME
 rcoulomb               = 1.1
-pme-order              = 6 
-fourierspacing         = 0.10
-ewald-rtol             = 1e-6
+pme-order              = 4
+fourierspacing         = 0.12
+ewald-rtol             = 1e-5
 
 ; VDW
 ;----------------------------------------------------

@@ -46,9 +46,9 @@ pbc              = xyz    ; 3D PBC
 coulombtype      = PME      ; Particle Mesh Ewald for long-range electrostatics
 rcoulomb         = 1.1      ; short-range electrostatic cutoff (in nm)
 ewald_geometry   = 3d       ; Ewald sum is performed in all three dimensions
-pme-order        = 6        ; interpolation order for PME (default is 4)
-fourierspacing   = 0.10     ; grid spacing for FFT
-ewald-rtol       = 1e-6     ; relative strength of the Ewald-shifted direct potential at rcoulomb
+pme-order        = 4        ; interpolation order for PME (default is 4)
+fourierspacing   = 0.12     ; grid spacing for FFT
+ewald-rtol       = 1e-5     ; relative strength of the Ewald-shifted direct potential at rcoulomb
 
 ; VAN DER WAALS
 ;----------------------------------------------------
