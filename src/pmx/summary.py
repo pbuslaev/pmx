@@ -212,22 +212,29 @@ def construct_arrays( valX, valY, keys=[], defaultError=0.0 ):
         dataX = valX[key]
         dataY = valY[key]
         
+        if np.isnan(dataX[0]) or (np.isnan(dataY[0])):
+            continue
+
         val1 = 0.0
-        err1 = defaultError     
-        
+        err1 = defaultError
+
         if hasattr(dataX, "__len__"):
-            val1 = dataX[0]           
-            if len(dataX)>1 and dataX[-1]>0.0:
-                err1 = dataX[-1]
+            val1 = dataX[0]
+            if len(dataX)>1:
+                if not np.isnan(dataX[-1]):
+                    if dataX[-1]>0.0:
+                        err1 = dataX[-1]
         else:
-            val1 = dataX 
-        
+            val1 = dataX
+
         val2 = 0.0
         err2 = defaultError
         if hasattr(dataY, "__len__"):
             val2 = dataY[0]
-            if len(dataY)>1 and dataY[-1]>0.0:
-                err2 = dataY[-1]
+            if len(dataY)>1:
+                if not np.isnan(dataY[-1]):
+                    if dataY[-1]>0.0:
+                        err2 = dataY[-1]
         else:
             val2 = dataY
 
