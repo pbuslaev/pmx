@@ -1566,7 +1566,7 @@ class AbsoluteDG:
                     print(l,end='')
                     
         
-    def run_analysis( self, ligs=None, bLig=False, bProt=False, bDssb=False, bParseOnly=False, bVerbose=False ):
+    def run_analysis( self, ligs=None, bLig=True, bProt=True, bDssb=False, bParseOnly=False, bVerbose=False ):
         print('----------------')
         print('Running analysis')
         print('----------------')
@@ -1577,65 +1577,59 @@ class AbsoluteDG:
             bLig = False
             bProt = False
         if bLig==False and bProt==False and bDssb==False:
-            print('No jobscript to prepare')
+            print('No analysis to perform')
             return(0)        
         
         # ligand/protein/dssb
+        wpcases = []
         if bDssb==True:
-            wp = 'dssb'
+            wpcases.append('dssb')
         if bLig==True:
-            wp = 'water'
+            wpcases.append('water')
         if bProt==True:
-            wp = 'protein'             
+            wpcases.append('protein')
         
         # ligands/edges
         if ligs==None:
             ligs = self.ligList
             
         counter = 0
+        # over ligands
         for lig in ligs:
-            
-            iA = '' # integrated value files
-            iB = '' # integrated value files
-            for r in range(1,self.replicas+1):            
-                                       
-                analysispath = '{0}/analyse{1}'.format( self._get_specific_path(lig=lig,wp=wp), r )
-                iA = '{0} {1}/integ0.dat'.format(iA,os.path.abspath(analysispath))
-                iB = '{0} {1}/integ1.dat'.format(iB,os.path.abspath(analysispath))
+            # water, protein or dssb
+            for wp in wpcases:            
+                iA = '' # integrated value files
+                iB = '' # integrated value files
+                for r in range(1,self.replicas+1):                                       
+                    analysispath = '{0}/analyse{1}'.format( self._get_specific_path(lig=lig,wp=wp), r )
+                    iA = '{0} {1}/integ0.dat'.format(iA,os.path.abspath(analysispath))
+                    iB = '{0} {1}/integ1.dat'.format(iB,os.path.abspath(analysispath))
                                                            
-                create_folder(analysispath)
-                stateApath = self._get_specific_path(lig=lig,wp=wp,state='stateA',r=r,sim='transitions')
-                stateBpath = self._get_specific_path(lig=lig,wp=wp,state='stateB',r=r,sim='transitions')
-                fA = ' '.join( glob.glob('{0}/*xvg'.format(stateApath)) )
-                fB = ' '.join( glob.glob('{0}/*xvg'.format(stateBpath)) )
-                oA = '{0}/integ0.dat'.format(analysispath)
-                oB = '{0}/integ1.dat'.format(analysispath)                
-                wplot = '{0}/wplot.png'.format(analysispath)
-                o = '{0}/results.txt'.format(analysispath)                
-                cmd = 'pmx analyse -fA {0} -fB {1} -o {2} -oA {3} -oB {4} -w {5} -t {6} -b {7}'.format(\
-                                   fA,fB,o,oA,oB,wplot,self.temperature,100) 
-                os.system(cmd)
-        
+                    create_folder(analysispath)
+                    stateApath = self._get_specific_path(lig=lig,wp=wp,state='stateA',r=r,sim='transitions')
+                    stateBpath = self._get_specific_path(lig=lig,wp=wp,state='stateB',r=r,sim='transitions')
+                    self._run_analysis_script( analysispath, stateApath, stateBpath, bVerbose=bVerbose )
+
             # analyze replicas all together
-            analysispath = '{0}/analyse_all'.format( self._get_specific_path(lig=lig,wp=wp) )
-            create_folder(analysispath)
-            if self.replicas==1: # simply copy analyse1
-                analysispath1 = '{0}/analyse1'.format( self._get_specific_path(lig=lig,wp=wp) )
-                cmd = 'cp {0}/* {1}/.'.format(analysispath1,analysispath)
-                os.system(cmd)
-            else:               
+#            analysispath = '{0}/analyse_all'.format( self._get_specific_path(lig=lig,wp=wp) )
+#            create_folder(analysispath)
+#            if self.replicas==1: # simply copy analyse1
+#                analysispath1 = '{0}/analyse1'.format( self._get_specific_path(lig=lig,wp=wp) )
+#                cmd = 'cp {0}/* {1}/.'.format(analysispath1,analysispath)
+#                os.system(cmd)
+#            else:               
                 # concatenate integrated values
-                cmd = 'cat {0} > {1}/integ0.dat'.format(iA,analysispath)
-                os.system(cmd)
-                cmd = 'cat {0} > {1}/integ1.dat'.format(iB,analysispath)
-                os.system(cmd)
-                iA = '{0}/integ0.dat'.format(analysispath)
-                iB = '{0}/integ1.dat'.format(analysispath)                
-                wplot = '{0}/wplot.png'.format(analysispath)
-                o = '{0}/results.txt'.format(analysispath)                
-                cmd = 'pmx analyse -iA {0} -iB {1} -o {2} -w {3} -t {4} -n {5}'.format(\
-                                   iA,iB,o,wplot,self.temperature,self.replicas)      
-                os.system(cmd)
+#                cmd = 'cat {0} > {1}/integ0.dat'.format(iA,analysispath)
+#                os.system(cmd)
+#                cmd = 'cat {0} > {1}/integ1.dat'.format(iB,analysispath)
+#                os.system(cmd)
+#                iA = '{0}/integ0.dat'.format(analysispath)
+#                iB = '{0}/integ1.dat'.format(analysispath)                
+#                wplot = '{0}/wplot.png'.format(analysispath)
+#                o = '{0}/results.txt'.format(analysispath)                
+#                cmd = 'pmx analyse -iA {0} -iB {1} -o {2} -w {3} -t {4} -n {5}'.format(\
+#                                   iA,iB,o,wplot,self.temperature,self.replicas)      
+#                os.system(cmd)
                     
     def _read_neq_results( self, fname ):
         fp = open(fname,'r')
@@ -1657,23 +1651,22 @@ class AbsoluteDG:
                 out.append(int(foo[-1]))
         return(out)         
     
-    def _fill_resultsAll( self, res, lig, wp, r=None, dgCorrection=0.0 ):
-        if r!=None:
-            rowName = '{0}_{1}_{2}'.format(lig,wp,r)
+    def _fill_resultsAll( self, res, lig, wp, replica=1, r=None, dgCorrection=0.0 ):
+        if r=='Correction':
+            rowName = '{0}_correction'.format(lig)
+            self.resultsAll.loc[rowName,'dGcalc'] = 1.0*dgCorrection
         else:
-            rowName = '{0}_{1}'.format(lig,wp)
+            rowName = '{0}_{1}_{2}'.format(lig,wp,replica)
             
-        self.resultsAll.loc[rowName,'dGcalc'] = -1.0*res[2]
-        self.resultsAll.loc[rowName,'dGcorr'] = -1.0*dgCorrection
-        # final result
-        self.resultsAll.loc[rowName,'dGfinal'] = self.resultsAll.loc[rowName,'dGcalc']+self.resultsAll.loc[rowName,'dGcorr']
-        try:
-            self.resultsAll.loc[rowName,'errBoot'] = res[4]            
-            self.resultsAll.loc[rowName,'errAnalyt'] = res[3]            
-        except:
-            self.resultsAll.loc[rowName,'errBlocks'] = res[3]
-        self.resultsAll.loc[rowName,'framesA'] = res[0]
-        self.resultsAll.loc[rowName,'framesB'] = res[1]
+            self.resultsAll.loc[rowName,'dGcalc'] = 1.0*res[2]
+#            self.resultsAll.loc[rowName,'dGfinal'] = self.resultsAll.loc[rowName,'dGcalc']+self.resultsAll.loc[rowName,'dGcorr']
+            try:
+                self.resultsAll.loc[rowName,'errBoot'] = res[4]            
+                self.resultsAll.loc[rowName,'errAnalyt'] = res[3]            
+            except:
+                self.resultsAll.loc[rowName,'errBlocks'] = res[3]
+            self.resultsAll.loc[rowName,'framesA'] = res[0]
+            self.resultsAll.loc[rowName,'framesB'] = res[1]
 
         
     def _read_analytical_correction( self, fname ):
@@ -1685,7 +1678,56 @@ class AbsoluteDG:
         arr = line.split()
         
         return(float(arr[-2]))   
-    
+ 
+    def _summarize_results( self, lig, wpcases ):
+        bootnum = 1000
+        for wp in wpcases:
+            dg = []
+            erra = []
+            errb = []
+            distra = []
+            distrb = []
+            frA = 0
+            frB = 0
+            for r in range(1,self.replicas+1):
+                rowName = '{0}_{1}_{2}'.format(lig,wp,r)
+                dg.append( self.resultsAll.loc[rowName,'dGcalc'] )
+                erra.append( self.resultsAll.loc[rowName,'errAnalyt'] )
+                errb.append( self.resultsAll.loc[rowName,'errBoot'] )
+                distra.append(np.random.normal(self.resultsAll.loc[rowName,'dGcalc'],self.resultsAll.loc[rowName,'errAnalyt'] ,size=bootnum))
+                distrb.append(np.random.normal(self.resultsAll.loc[rowName,'dGcalc'],self.resultsAll.loc[rowName,'errBoot'] ,size=bootnum))
+                frA += self.resultsAll.loc[rowName,'framesA']
+                frB += self.resultsAll.loc[rowName,'framesB']
+
+            rowName = '{0}_{1}'.format(lig,wp)
+            distra = np.array(distra).flatten()
+            distrb = np.array(distrb).flatten()
+
+            self.resultsAll.loc[rowName,'dGcalc'] = np.mean(dg)
+            self.resultsAll.loc[rowName,'errAnalyt'] = np.sqrt(np.var(distra,ddof=1)/float(self.replicas))
+            self.resultsAll.loc[rowName,'errBoot'] = np.sqrt(np.var(distrb,ddof=1)/float(self.replicas))
+            self.resultsAll.loc[rowName,'framesA'] = frA
+            self.resultsAll.loc[rowName,'framesB'] = frB
+
+        #### collect resultsSummary
+        rowCorrection = '{0}_{1}'.format(lig,'correction')
+        if self.bDSSB==True:
+            rowName = '{0}_{1}'.format(lig,'dssb')
+            dg = -1.0*self.resultsAll.loc[rowName,'dGcalc'] - self.resultsAll.loc[rowCorrection,'dGcalc']
+            erra = self.resultsAll.loc[rowName,'errAnalyt']
+            errb = self.resultsAll.loc[rowName,'errBoot']
+        else: 
+            rowNameWater = '{0}_{1}'.format(lig,'water')
+            rowNameProtein = '{0}_{1}'.format(lig,'protein')
+            dg = self.resultsAll.loc[rowNameWater,'dGcalc'] - self.resultsAll.loc[rowNameProtein,'dGcalc'] - self.resultsAll.loc[rowCorrection,'dGcalc']
+            erra = np.sqrt( np.power(self.resultsAll.loc[rowNameProtein,'errAnalyt'],2.0) \
+                            + np.power(self.resultsAll.loc[rowNameWater,'errAnalyt'],2.0) )
+            errb = np.sqrt( np.power(self.resultsAll.loc[rowNameProtein,'errBoot'],2.0) \
+                            + np.power(self.resultsAll.loc[rowNameWater,'errBoot'],2.0) )
+
+        self.resultsSummary.loc[lig,'dGcalc'] = dg
+        self.resultsSummary.loc[lig,'errAnalyt'] = erra
+        self.resultsSummary.loc[lig,'errBoot'] = errb
         
     def analysis_summary( self, ligs=None ):
         # ligands/edges
@@ -1693,22 +1735,24 @@ class AbsoluteDG:
             ligs = self.ligList
             
         # check which case to use
-        wpList = ['water','protein']
+        wpcases = ['water','protein']
         if self.bDSSB==True:
-            wpList = ['dssb']
+            wpcases = ['dssb']
             
         for lig in ligs:
-            for wp in wpList:
+            # analytical correction
+            holoPath = self._get_specific_path( lig=lig, case='holo', bStrTop=True )
+            fname = '{0}/restr_dG.dat'.format(holoPath)
+            dgCorrection = self._read_analytical_correction( fname )
+            self._fill_resultsAll( {}, lig, '', r='Correction', dgCorrection=dgCorrection )
                 
-                # analytical correction
-                holoPath = self._get_specific_path( lig=lig, case='holo', bStrTop=True )
-                fname = '{0}/restr_dG.dat'.format(holoPath)
-                dgCorrection = self._read_analytical_correction( fname )
-                
-                # calculation
-                analysispath = '{0}/analyse_all'.format( self._get_specific_path(lig=lig,wp=wp) )
-                resultsfile = '{0}/results.txt'.format(analysispath)
-                res = self._read_neq_results( resultsfile )
-                self._fill_resultsAll( res, lig, wp, dgCorrection=dgCorrection )
+            for wp in wpcases:
+                for r in range(1,self.replicas+1):            
+                    analysispath = '{0}/analyse{1}'.format( self._get_specific_path(lig=lig,wp=wp),r)
+                    resultsfile = '{0}/results.txt'.format(analysispath)
+                    res = self._read_neq_results( resultsfile )
+                    self._fill_resultsAll( res, lig, wp, replica=r, dgCorrection=dgCorrection )
                                
+            # calculate final values
+            self._summarize_results( lig, wpcases )
 
