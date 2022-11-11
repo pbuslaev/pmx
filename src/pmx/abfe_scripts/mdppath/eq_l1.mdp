@@ -28,7 +28,7 @@ nstcalcenergy          = 100        ; calculate energies every 100 steps
 constraint_algorithm   = lincs    ; holonomic constraints 
 constraints            = h-bonds  ; hydrogens only are constrained
 lincs_iter             = 1        ; accuracy of LINCS (1 is default)
-lincs_order            = 6        ; also related to accuracy (4 is default)
+lincs_order            = 4        ; also related to accuracy (4 is default)
 lincs-warnangle        = 30       ; maximum angle that a bond can rotate before LINCS will complain (30 is default)
 continuation           = no       ; formerly known as 'unconstrained-start' - useful for exact continuations and reruns
 
@@ -45,9 +45,9 @@ pbc              = xyz    ; 3D PBC
 coulombtype      = PME      ; Particle Mesh Ewald for long-range electrostatics
 rcoulomb         = 1.1      ; short-range electrostatic cutoff (in nm)
 ewald_geometry   = 3d       ; Ewald sum is performed in all three dimensions
-pme-order        = 6        ; interpolation order for PME (default is 4)
-fourierspacing   = 0.10     ; grid spacing for FFT
-ewald-rtol       = 1e-6     ; relative strength of the Ewald-shifted direct potential at rcoulomb
+pme-order        = 4        ; interpolation order for PME (default is 4)
+fourierspacing   = 0.12     ; grid spacing for FFT
+ewald-rtol       = 1e-5     ; relative strength of the Ewald-shifted direct potential at rcoulomb
 
 ; VAN DER WAALS
 ;----------------------------------------------------
