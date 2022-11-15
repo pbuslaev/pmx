@@ -13,11 +13,11 @@ nstcomm      = 100           ; frequency for center of mass motion removal
 
 ; OUTPUT CONTROL
 ;----------------------------------------------------
-nstxout          = 45000      ; save coordinates to .trr every 90 ps
-nstvout          = 45000          ; save velocities to .trr every 90 ps
-nstfout          = 0          ; don't save forces to .trr
+nstxout          = 100000      ; save coordinates to .trr every 200 ps
+nstvout          = 100000      ; save velocities to .trr every 200 ps
+nstfout          = 0           ; don't save forces to .trr
 
-nstxout-compressed     = 0        ; xtc compressed trajectory output every 500 steps
+nstxout-compressed     = 0         ; don't save xtc compressed trajectory
 compressed-x-precision = 1000       ; precision with which to write to the compressed trajectory file
 nstlog                 = 100000       ; update log file every 200 ps
 nstenergy              = 100000       ; save energies every 200 ps
