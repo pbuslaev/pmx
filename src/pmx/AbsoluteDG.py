@@ -1610,8 +1610,9 @@ class AbsoluteDG:
                     stateBpath = self._get_specific_path(lig=lig,wp=wp,state='stateB',r=r,sim='transitions')
                     self._run_analysis_script( analysispath, stateApath, stateBpath, bVerbose=bVerbose )
 
-            # calculate final values
-            self._summarize_results(lig, wpcases)
+        
+        # calculate final values
+        self.analysis_summary(ligs)
 
             # analyze replicas all together
 #            analysispath = '{0}/analyse_all'.format( self._get_specific_path(lig=lig,wp=wp) )
