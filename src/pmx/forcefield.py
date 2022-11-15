@@ -758,7 +758,7 @@ class TopolBase:
     # write functions
     # ===============
     def write(self, outfile, stateBonded='AB', stateTypes='AB', stateQ='AB',
-              scale_mass=False, dummy_qA='on', dummy_qB='on', target_qB=None,
+              scale_mass=1.0, dummy_qA='on', dummy_qB='on', target_qB=None,
               full_morphe=True, write_atypes=True, posre_ifdef=True, posre_include=False,
               verbose=False, qPrec=6):
         """Writes the Topology to file.
@@ -785,8 +785,8 @@ class TopolBase:
             write charges with statse A only, AA, BB, or AB.
             Default is AB. If you want to write a 'standard' topology with no
             B-state columns, select 'A'.
-        scale_mass : bool, optional
-            whether to scale the masses of dummy atoms. Default is False.
+        scale_mass : float, optional
+            scale the mass of dummy atoms by multiplying with scale_mass
         dummy_qA : on|off
             whether to have charges on dummy atoms in state A ('on') or
             not ('off'). Default is 'on'.
@@ -1077,7 +1077,7 @@ class TopolBase:
             print('{a1:>10}{a2:>10}{func:>5}{sigma:>20.5e}{epsilon:>20.5e}'.format(**param), file=fp)
 
     def write_atoms(self, fp, charges='AB', atomtypes='AB', dummy_qA='on',
-                    dummy_qB='on', scale_mass=True, target_qB=[],
+                    dummy_qB='on', scale_mass=1.0, target_qB=[],
                     full_morphe=True, verbose=False, qPrec=6):
 
         # number of significant digits for charges in topology
@@ -1184,10 +1184,14 @@ class TopolBase:
                     mA = atom.mB
                     mB = atom.mB
                 if scale_mass:
-                    if atA.startswith('DUM'):
-                        mA = 1.
-                    if atB.startswith('DUM'):
-                        mB = 1.
+                    if atA.startswith('DUM'): # scale mass at state A
+                        mA *= scale_mass
+                        if( mA < 1.0 and mB != 0.0):
+                            mA = 1.0
+                    if atB.startswith('DUM'): # scale mass at state B
+                        mB *= scale_mass
+                        if( mB < 1.0 and mA != 0.0):
+                            mB = 1.0
                 if hasattr(atom, "qqB"):
                     qqB = atom.qqB
                     if hasattr(atom, "contQ") and not full_morphe:

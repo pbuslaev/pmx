@@ -91,10 +91,10 @@ mutate, and after having passed that mutated structure through pdb2gmx.
                         action='store_true')
     parser.add_argument('--scale_mass',
                         dest='scale_mass',
-                        help='Scale the masses of morphing atoms so that '
-                        'dummies have a mass of 1.',
-                        default=False,
-                        action='store_true')
+                        help='Scale the masses of dummy atoms by multiplying '
+                        'with scale_mass factor',
+                        default=0.25,
+                        action='store')
     parser.add_argument('--scale_dih',
                         dest='scale_dih',
                         help='Scale the dihedrals that have a dummy. ',
@@ -127,7 +127,7 @@ def main(args):
     top_file_ext = top_file.split('.')[-1]
     outfile = args.outfile
     ff = args.ff
-    scale_mass = args.scale_mass
+    scale_mass = float(args.scale_mass)
     recursive = args.recursive
     scaleDih = float(args.scale_dih)
 

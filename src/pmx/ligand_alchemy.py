@@ -2950,7 +2950,7 @@ class LigandHybridTopology:
         doLog(self.logfile,'Making "qoff" topology : "%s"' % out_file_qoff)
         contQ = cp.deepcopy(self.qA_mem)
         self.newitp.write( out_file_qoff, stateQ = 'AB', stateTypes = 'AA', dummy_qB='off',
-                          scale_mass=False, target_qB = self.qA, stateBonded = 'AA', full_morphe = False )
+                          scale_mass=1.0, target_qB = self.qA, stateBonded = 'AA', full_morphe = False )
         doLog(self.logfile,'Charge of state A: %g' % self.qA )
         doLog(self.logfile,'Charge of state B: %g' % self.qB )
 
@@ -2958,14 +2958,14 @@ class LigandHybridTopology:
         doLog(self.logfile,'Making "vdw" topology : "%s"' % out_file_vdw )
         contQ = cp.deepcopy(self.qA_mem)
         self.newitp.write( out_file_vdw, stateQ = 'BB', stateTypes = 'AB', dummy_qA='off', dummy_qB = 'off',
-                          scale_mass = False, target_qB = contQ, stateBonded = 'AB' , full_morphe = False)
+                          scale_mass = 1.0, target_qB = contQ, stateBonded = 'AB' , full_morphe = False)
         doLog(self.logfile,'Charge of state A: %g' % self.qA)
         doLog(self.logfile,'Charge of state B: %g' % self.qB)
         doLog(self.logfile,'------------------------------------------------------')
 
         doLog(self.logfile,'Making "qon" topology : "%s"' % out_file_qon)
         self.newitp.write( out_file_qon, stateQ = 'BB', stateTypes = 'BB', dummy_qA='off', dummy_qB = 'on',
-                          scale_mass = False, target_qB = self.qB_mem,  stateBonded = 'BB' , full_morphe = False)
+                          scale_mass = 1.0, target_qB = self.qB_mem,  stateBonded = 'BB' , full_morphe = False)
         doLog(self.logfile,'Charge of state A: %g' % self.qA)
         doLog(self.logfile,'Charge of state B: %g' % self.qB)
         doLog(self.logfile,'------------------------------------------------------')
