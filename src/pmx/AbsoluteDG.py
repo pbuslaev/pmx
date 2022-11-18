@@ -1,12 +1,11 @@
 import pmx
 from pmx import *
 #from pmx.utils import create_folder
-from pmx import gmx, ligand_alchemy, jobscript
+from pmx import gmx, jobscript
 from pmx.parser import *
 from pmx.forcefield import *
 from pmx.utils import * #create_folder, clean_gromacs_backup_files
 from pmx.DoubleBox import DoubleBox
-#from pmx.forcefield import TopolBase
 from pmx.geometry import *
 import sys
 import os,shutil
@@ -18,6 +17,7 @@ import numpy as np
 import pandas as pd
 import copy as cp
 from pmx.Restraints import *
+
 
 class TOPdecouple:
     """Class to switch off A or B state of the whole molecule via topology
@@ -1609,6 +1609,10 @@ class AbsoluteDG:
                     stateApath = self._get_specific_path(lig=lig,wp=wp,state='stateA',r=r,sim='transitions')
                     stateBpath = self._get_specific_path(lig=lig,wp=wp,state='stateB',r=r,sim='transitions')
                     self._run_analysis_script( analysispath, stateApath, stateBpath, bVerbose=bVerbose )
+
+        
+        # calculate final values
+        self.analysis_summary(ligs)
 
             # analyze replicas all together
 #            analysispath = '{0}/analyse_all'.format( self._get_specific_path(lig=lig,wp=wp) )
