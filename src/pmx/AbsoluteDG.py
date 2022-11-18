@@ -1,11 +1,12 @@
 import pmx
 from pmx import *
 #from pmx.utils import create_folder
-from pmx import gmx, jobscript
+from pmx import gmx, ligand_alchemy, jobscript
 from pmx.parser import *
 from pmx.forcefield import *
 from pmx.utils import * #create_folder, clean_gromacs_backup_files
 from pmx.DoubleBox import DoubleBox
+#from pmx.forcefield import TopolBase
 from pmx.geometry import *
 import sys
 import os,shutil
@@ -17,7 +18,6 @@ import numpy as np
 import pandas as pd
 import copy as cp
 from pmx.Restraints import *
-
 
 class TOPdecouple:
     """Class to switch off A or B state of the whole molecule via topology
@@ -1475,7 +1475,7 @@ class AbsoluteDG:
 #                                    self._prepare_single_tpr( state=state, simpath=simpath, 
             
                         
-    def prepare_jobscripts( self, ligs=None, simType='em', bLig=False, bProt=False, 
+    def prepare_jobscripts( self, ligs=None, simType='em', bLig=True, bProt=True, 
                            bDssb=False, mdrunargs='' ):
         print('---------------------------------------------')
         print('Preparing jobscripts for: {0}'.format(simType))
@@ -1494,12 +1494,13 @@ class AbsoluteDG:
             return(0)
         
         # ligand/protein/dssb
+        wpcases = []
         if bDssb==True:
-            wp = 'dssb'
+            wpcases.append('dssb')
         if bLig==True:
-            wp = 'water'
+            wpcases.append('water')
         if bProt==True:
-            wp = 'protein'     
+            wpcases.append('protein')         
 
         # ligands/edges
         if ligs==None:
@@ -1507,27 +1508,29 @@ class AbsoluteDG:
             
         counter = 0
         for lig in ligs:
-            
-            for state in self.states:
-                for r in range(1,self.replicas+1):            
+            # water, protein or dssb
+            for wp in wpcases:
+                for state in self.states:
+                    for r in range(1,self.replicas+1):            
                                        
-                    simpath = self._get_specific_path(lig=lig,wp=wp,state=state,r=r,sim=simType)                   
-                    jobfile = '{0}/jobscript{1}'.format(jobfolder,counter)
-                    jobname = '{0}_{1}_{2}_{3}_{4}'.format(wp,lig,state,r,simType)
-                    job = jobscript.Jobscript(fname=jobfile,
+                        simpath = self._get_specific_path(lig=lig,wp=wp,state=state,r=r,sim=simType)                   
+                        jobfile = '{0}/jobscript{1}'.format(jobfolder,counter)
+                        jobname = '{0}_{1}_{2}_{3}_{4}'.format(wp,lig,state,r,simType)
+                        job = jobscript.Jobscript(fname=jobfile,
                                         queue=self.JOBqueue,simcpu=self.JOBsimcpu,
                                         jobname=jobname,modules=self.JOBmodules,source=self.JOBsource,
                                         gmx=self.JOBgmx, partition=self.JOBpartition)
                     
-                    cmd1 = 'cd {0}'.format( os.path.relpath(simpath, start=jobfolder) ) 
-                    cmd2 = '$GMXRUN -s tpr.tpr {0}'.format(mdrunargs)
-                    job.cmds = [cmd1,cmd2]
+                        cmd1 = 'cd {0}'.format( os.path.relpath(simpath, start=jobfolder) ) 
+                        cmd2 = '$GMXRUN -s tpr.tpr {0}'.format(mdrunargs)
+                        job.cmds = [cmd1,cmd2]
                     
-                    if ('transition' in simType) or ('ti' in simType):
-                        self._commands_for_transitions( simpath, job )                        
+                        if ('transition' in simType) or ('ti' in simType):
+                            self._commands_for_transitions( simpath, job )                        
                         
-                    job.create_jobscript()
-                    counter+=1
+                        job.create_jobscript()
+                        print('VG',lig,wp,state,r,counter)
+                        counter+=1
                         
         #######
         job._submission_script( jobfolder=jobfolder, counter=counter, simType=simType, frNum=self.frameNum )
@@ -1609,10 +1612,6 @@ class AbsoluteDG:
                     stateApath = self._get_specific_path(lig=lig,wp=wp,state='stateA',r=r,sim='transitions')
                     stateBpath = self._get_specific_path(lig=lig,wp=wp,state='stateB',r=r,sim='transitions')
                     self._run_analysis_script( analysispath, stateApath, stateBpath, bVerbose=bVerbose )
-
-        
-        # calculate final values
-        self.analysis_summary(ligs)
 
             # analyze replicas all together
 #            analysispath = '{0}/analyse_all'.format( self._get_specific_path(lig=lig,wp=wp) )
