@@ -606,11 +606,13 @@ class AbsRestraints:
         usedID.append(indProt1)
 
         # indProt2 prot atom closest to indLig2
-        indProt2 = self._closest_prot_atom( system, indLig2, usedID ) 
+#        indProt2 = self._closest_prot_atom( system, indLig2, usedID ) 
+        indProt2 = self._closest_prot_atom( system, indProt1, usedID ) 
         usedID.append(indProt2)
 
         # indProt3 prot atom closest to indLig3
-        indProt3 = self._closest_prot_atom( system, indLig3, usedID, bAngleCheck=2, indProt1=indProt1 ) 
+#        indProt3 = self._closest_prot_atom( system, indLig3, usedID, bAngleCheck=2, indProt1=indProt1 ) 
+        indProt3 = self._closest_prot_atom( system, indProt2, usedID, bAngleCheck=2, indProt1=indProt1 ) 
         usedID.append(indProt3)
 #        print indLig1, indProt1, indProt2, indProt3
 
