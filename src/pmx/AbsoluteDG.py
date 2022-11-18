@@ -1529,7 +1529,6 @@ class AbsoluteDG:
                             self._commands_for_transitions( simpath, job )                        
                         
                         job.create_jobscript()
-                        print('VG',lig,wp,state,r,counter)
                         counter+=1
                         
         #######
