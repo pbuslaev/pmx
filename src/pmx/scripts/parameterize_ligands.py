@@ -78,6 +78,13 @@ def gen_itp( fname_top, fname_gro, randnum ):
 #    write_ff(itp.atomtypes, fname_ffitp)
     return(itp)
 
+def run_acpype_from_pdb( fname_prmtop, fname_inpcrd, charge, randnum, ff ):
+    fname_top = 'MOL_GMX.top'
+    fname_gro = 'MOL_GMX.gro'
+    cmd = 'acpype.py -p '+fname_prmtop+' -x '+fname_inpcrd+' -o gmx -a '+ff+' -n '+str(charge)+' -c user -b MOL'
+    os.system(cmd)
+    return(fname_top,fname_gro)
+
 def run_acpype( fname_prmtop, fname_inpcrd, charge, randnum, ff ):
     fname_top = 'MOL_GMX.top'
     fname_gro = 'MOL_GMX.gro'
@@ -904,7 +911,18 @@ def main(argv):
         sys.exit(0)
 
     if cmdl.opt['-pdb'].is_set:
-        m = Model().read(cmdl['-pdb'])
+        # just read pdb
+        if cmdl.opt['-itp'].is_set or cmdl.opt['-log'].is_set or cmdl.opt['-esp'].is_set:
+            m = Model().read(cmdl['-pdb'])
+        # need to generate pdb first, then read it (only works for gaff now)
+        elif( 'gaff' in ff):
+           run_acpype_from_pdb( cmdl['-pdb'],ff )
+        else:
+            print('For this ff cannot generate topology straight away from pdb')
+            sys.exit(0)
+           
+
+    sys.exit(0)
 
     charge = cmdl['-q']
     scaleD = cmdl['-scaleD']
