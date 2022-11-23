@@ -78,17 +78,17 @@ def gen_itp( fname_top, fname_gro, randnum ):
 #    write_ff(itp.atomtypes, fname_ffitp)
     return(itp)
 
-def run_acpype_from_pdb( fname_prmtop, fname_inpcrd, charge, randnum, ff ):
-    fname_top = 'MOL_GMX.top'
-    fname_gro = 'MOL_GMX.gro'
-    cmd = 'acpype.py -p '+fname_prmtop+' -x '+fname_inpcrd+' -o gmx -a '+ff+' -n '+str(charge)+' -c user -b MOL'
+def run_acpype_from_pdb( finp, ff, chargeMethod='bcc', charge=42 ):
+    if charge==42: # guess the charge
+        cmd = 'acpype -a {0} -o gmx -i {1} -c {2}'.format(ff,finp,chargeMethod)
+    else:
+        cmd = 'acpype -a {0} -o gmx -i {1} -c {2} -n {3}'.format(ff,finp,chargeMethod,charge)
     os.system(cmd)
-    return(fname_top,fname_gro)
 
 def run_acpype( fname_prmtop, fname_inpcrd, charge, randnum, ff ):
     fname_top = 'MOL_GMX.top'
     fname_gro = 'MOL_GMX.gro'
-    cmd = 'acpype.py -p '+fname_prmtop+' -x '+fname_inpcrd+' -o gmx -a '+ff+' -n '+str(charge)+' -c user -b MOL'
+    cmd = 'acpype -p '+fname_prmtop+' -x '+fname_inpcrd+' -o gmx -a '+ff+' -n '+str(charge)+' -c user -b MOL'
     os.system(cmd)
     return(fname_top,fname_gro)
 
@@ -916,7 +916,10 @@ def main(argv):
             m = Model().read(cmdl['-pdb'])
         # need to generate pdb first, then read it (only works for gaff now)
         elif( 'gaff' in ff):
-           run_acpype_from_pdb( cmdl['-pdb'],ff )
+            if cmdl.opt['-q'].is_set:
+                run_acpype_from_pdb( cmdl['-pdb'],ff,charge=cmdl['-q'] )
+            else:
+                run_acpype_from_pdb( cmdl['-pdb'],ff )
         else:
             print('For this ff cannot generate topology straight away from pdb')
             sys.exit(0)
@@ -924,9 +927,9 @@ def main(argv):
 
     sys.exit(0)
 
-    charge = cmdl['-q']
     scaleD = cmdl['-scaleD']
     bClean = cmdl['-clean']
+    charge = cmdl['-q']
 
     bRESP = False
     if cmdl.opt['-itp'].is_set:
