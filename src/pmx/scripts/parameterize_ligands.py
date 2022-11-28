@@ -916,10 +916,18 @@ def main(argv):
             m = Model().read(cmdl['-pdb'])
         # need to generate pdb first, then read it (only works for gaff now)
         elif( 'gaff' in ff):
-            if cmdl.opt['-q'].is_set:
-                run_acpype_from_pdb( cmdl['-pdb'],ff,charge=cmdl['-q'] )
-            else:
-                run_acpype_from_pdb( cmdl['-pdb'],ff )
+#            if cmdl.opt['-q'].is_set:
+#                run_acpype_from_pdb( cmdl['-pdb'],ff,charge=cmdl['-q'] )
+#            else:
+#                run_acpype_from_pdb( cmdl['-pdb'],ff )
+            pdbname = cmdl['-pdb'].split('/')[-1].split('.')[-2]
+            acpypepath = ''.join( cmdl['-pdb'].split('.')[0:-1] )+'.acpype'
+            newitpname = '{0}/{1}_GMX.itp'.format(acpypepath,pdbname)
+            cmdl.append(
+#            cmdl['-itp'] = newitpname
+            print('VG',cmdl)
+#            if cmdl.opt['-itp'].is_set:
+#                print('aha')
         else:
             print('For this ff cannot generate topology straight away from pdb')
             sys.exit(0)
