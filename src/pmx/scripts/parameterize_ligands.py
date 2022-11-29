@@ -10,6 +10,16 @@ import random
 import numpy as np
 import re
 
+def split_itp_ffitp( itpfname, ffitpfname, itpoutfname ):
+    itp = TopolBase( itpfname )
+    fp = open(ffitpfname,'w')
+    fp.write('[ atomtypes ]\n')
+    for at in itp.atomtypes:
+        fp.write('%8s %12.6f %12.6f %3s %12.6f %12.6f\n' % (at['name'],at['mass'],at['charge'],at['ptype'],at['sigma'],at['epsilon']))
+    fp.close()
+    itp.atomtypes = []
+    itp.write(itpoutfname)
+
 def structure_from_xyz( fname ):
     fp = open(fname,'r')
     lines = fp.readlines()
@@ -878,6 +888,11 @@ def main(argv):
 
     bSH = cmdl['-sh']
 
+    bITPinp = cmdl.opt['-itp'].is_set
+    bFFITPinp = cmdl.opt['-ffitp'].is_set
+    itpfname = cmdl['-itp']
+    ffitpfname = cmdl['-ffitp']
+
     ##########################
     ### identify the rules ###
     rule = cmdl['-rule'].lower()
@@ -912,7 +927,7 @@ def main(argv):
 
     if cmdl.opt['-pdb'].is_set:
         # just read pdb
-        if cmdl.opt['-itp'].is_set or cmdl.opt['-log'].is_set or cmdl.opt['-esp'].is_set:
+        if bITPinp or cmdl.opt['-log'].is_set or cmdl.opt['-esp'].is_set:
             m = Model().read(cmdl['-pdb'])
         # need to generate pdb first, then read it (only works for gaff now)
         elif( 'gaff' in ff):
@@ -920,40 +935,39 @@ def main(argv):
 #                run_acpype_from_pdb( cmdl['-pdb'],ff,charge=cmdl['-q'] )
 #            else:
 #                run_acpype_from_pdb( cmdl['-pdb'],ff )
+            m = Model().read(cmdl['-pdb'])
             pdbname = cmdl['-pdb'].split('/')[-1].split('.')[-2]
             acpypepath = ''.join( cmdl['-pdb'].split('.')[0:-1] )+'.acpype'
-            newitpname = '{0}/{1}_GMX.itp'.format(acpypepath,pdbname)
-            cmdl.append(
-#            cmdl['-itp'] = newitpname
-            print('VG',cmdl)
-#            if cmdl.opt['-itp'].is_set:
-#                print('aha')
+            itpfname = '{0}/{1}_GMX.itp'.format(acpypepath,pdbname)
+            ffitpfname = cmdl['-offitp']
+            split_itp_ffitp( itpfname, ffitpfname, cmdl['-oitp'] )
+            bITPinp = True
+            bFFITPinp = True
+            itpfname = cmdl['-oitp']
         else:
             print('For this ff cannot generate topology straight away from pdb')
             sys.exit(0)
-           
-
-    sys.exit(0)
+#    sys.exit(0)
 
     scaleD = cmdl['-scaleD']
     bClean = cmdl['-clean']
     charge = cmdl['-q']
 
     bRESP = False
-    if cmdl.opt['-itp'].is_set:
-        itp = TopolBase(cmdl['-itp'])#, ff=ff)
+    if bITPinp:
+        itp = TopolBase(itpfname)#, ff=ff)
     elif cmdl.opt['-log'].is_set:
         if 'gaff' not in ff:
             print('RESP fit can be done only for GAFF force field')
             sys.exit(0)
         gaussianLogFile = cmdl['-log']
         bRESP = True
-    if cmdl.opt['-ffitp'].is_set:
-        ffitp = TopolBase( cmdl['-ffitp'] )#ff=ff )
+    if bFFITPinp:
+        ffitp = TopolBase( ffitpfname )#ff=ff )
     else:
         ffitp = TopolBase( filename=None )#ff=ff )
 
-    if cmdl.opt['-itp'].is_set:
+    if bITPinp:
         halogens = []
         halogens_nn = []
         if bSH==True:
