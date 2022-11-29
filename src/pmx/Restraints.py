@@ -119,6 +119,11 @@ class AbsRestraints:
         self.aLig2.a2nm()
         self.aLig3.a2nm()
 
+        # check if all went fine
+        if self.indLig1[0]==-42 or self.indLig2[0]==-42 or self.indLig3[0]==-42:
+            print('Something went wrong in ligand atom selection. Exiting...')
+            sys.exit(0)
+
         # protein indeces
         if self.bManProt==True:
             if self.indProt1==False:
@@ -143,6 +148,11 @@ class AbsRestraints:
         self.aProt1.a2nm()
         self.aProt2.a2nm()
         self.aProt3.a2nm()
+
+        # check if all went fine
+        if self.indProt1[0]==-42 or self.indProt2[0]==-42 or self.indProt3[0]==-42:
+            print('Something went wrong in protein atom selection. Exiting...')
+            sys.exit(0)
 
         # distance
         self.dist = self.aProt1 - self.aLig1
@@ -490,13 +500,13 @@ class AbsRestraints:
                         indLig = a.id-1
         return(indLig)
 
-    def _furthest_lig_atom( self, system, resname, indLig1, indLig2=False ):
+    def _furthest_lig_atom( self, system, resname, indLig1, indLig2=False, usedID=[] ):
         indLig = -42
         maxdist = -99999.999
         for a in system.atoms:
             if a.resname==resname and (a.id-1 in self.indLig):
                 aname = self._get_atom_name( a.name )
-                if aname.startswith('C') and not aname.startswith('CL'):
+                if aname.startswith('C') and not aname.startswith('CL') and (a.id-1 not in usedID):
                     d = a - system.atoms[indLig1]
                     if indLig2!=False:
                         d += a - system.atoms[indLig2]
@@ -505,7 +515,7 @@ class AbsRestraints:
                         indLig = a.id-1
         return(indLig)
 
-    def _closest_lig_atom( self, system, resname, indLig1, usedID ):
+    def _closest_lig_atom( self, system, resname, indLig1, usedID=[] ):
         indLig = -42
         mindist = 99999.999
         for a in system.atoms:
@@ -544,7 +554,7 @@ class AbsRestraints:
 
         if self.bLigMaxSpread==True:
             # second atom furthest from first atom
-            indLig2 = self._furthest_lig_atom( system, resname, indLig1 )
+            indLig2 = self._furthest_lig_atom( system, resname, indLig1, usedID )
         else:
             # second atom closest to the first atom
             indLig2 = self._closest_lig_atom( system, resname, indLig1, usedID )
@@ -552,7 +562,7 @@ class AbsRestraints:
 
         if self.bLigMaxSpread==True:
             # third atom furthest from first and second atoms
-            indLig3 = self._furthest_lig_atom( system, resname, indLig1, indLig2 )
+            indLig3 = self._furthest_lig_atom( system, resname, indLig1, indLig2, usedID )
         else:
             indLig3 = self._closest_lig_atom( system, resname, indLig1, usedID )
        
