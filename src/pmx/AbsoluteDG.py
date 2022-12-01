@@ -462,6 +462,7 @@ class AbsoluteDG:
         self.kBond = 4184.0 # kJ/mol/nm2 AbsRestraints bond force constant
         self.kAngle = 41.84 # kJ/mol/rad2 AbsRestraints angle force constant
         self.kDihedral = 41.84 # kJ/mol/rad2 AbsRestraints dihedral force constant
+        self.ligSymmetry = 1 # ligand symmetry (for now, add it manually, but later it should be evaluated automatically)
                 
         # simulation setup
         self.ff = 'amber99sb-star-ildn-mut.ff'
@@ -474,6 +475,7 @@ class AbsoluteDG:
         self.equilTime = 1080.0 # ps to discard for equilibration
         self.frameNum = 100 # number of transitions
         self.temperature = 298.15
+        self.RT = self.temperature*8.31446261815324/1000.0 # kJ/mol
         
         # job submission params
         self.JOBqueue = 'SGE' # could be SLURM
@@ -1615,26 +1617,26 @@ class AbsoluteDG:
                     stateBpath = self._get_specific_path(lig=lig,wp=wp,state='stateB',r=r,sim='transitions')
                     self._run_analysis_script( analysispath, stateApath, stateBpath, bVerbose=bVerbose )
 
-            # analyze replicas all together
-#            analysispath = '{0}/analyse_all'.format( self._get_specific_path(lig=lig,wp=wp) )
-#            create_folder(analysispath)
-#            if self.replicas==1: # simply copy analyse1
-#                analysispath1 = '{0}/analyse1'.format( self._get_specific_path(lig=lig,wp=wp) )
-#                cmd = 'cp {0}/* {1}/.'.format(analysispath1,analysispath)
-#                os.system(cmd)
-#            else:               
-                # concatenate integrated values
-#                cmd = 'cat {0} > {1}/integ0.dat'.format(iA,analysispath)
-#                os.system(cmd)
-#                cmd = 'cat {0} > {1}/integ1.dat'.format(iB,analysispath)
-#                os.system(cmd)
-#                iA = '{0}/integ0.dat'.format(analysispath)
-#                iB = '{0}/integ1.dat'.format(analysispath)                
-#                wplot = '{0}/wplot.png'.format(analysispath)
-#                o = '{0}/results.txt'.format(analysispath)                
-#                cmd = 'pmx analyse -iA {0} -iB {1} -o {2} -w {3} -t {4} -n {5}'.format(\
-#                                   iA,iB,o,wplot,self.temperature,self.replicas)      
-#                os.system(cmd)
+                # analyze replicas all together
+                analysispath = '{0}/analyse_all'.format( self._get_specific_path(lig=lig,wp=wp) )
+                create_folder(analysispath)
+                if self.replicas==1: # simply copy analyse1
+                    analysispath1 = '{0}/analyse1'.format( self._get_specific_path(lig=lig,wp=wp) )
+                    cmd = 'cp {0}/* {1}/.'.format(analysispath1,analysispath)
+                    os.system(cmd)
+                else:               
+                    # concatenate integrated values
+                    cmd = 'cat {0} > {1}/integ0.dat'.format(iA,analysispath)
+                    os.system(cmd)
+                    cmd = 'cat {0} > {1}/integ1.dat'.format(iB,analysispath)
+                    os.system(cmd)
+                    iA = '{0}/integ0.dat'.format(analysispath)
+                    iB = '{0}/integ1.dat'.format(analysispath)                
+                    wplot = '{0}/wplot.png'.format(analysispath)
+                    o = '{0}/results.txt'.format(analysispath)                
+                    cmd = 'pmx analyse -iA {0} -iB {1} -o {2} -w {3} -t {4} -n {5}'.format(\
+                                                              iA,iB,o,wplot,self.temperature,self.replicas)      
+                    os.system(cmd)
                     
     def _read_neq_results( self, fname ):
         fp = open(fname,'r')
@@ -1660,6 +1662,9 @@ class AbsoluteDG:
         if r=='Correction':
             rowName = '{0}_correction'.format(lig)
             self.resultsAll.loc[rowName,'dGcalc'] = 1.0*dgCorrection
+        elif r=='Symmetry':
+            rowName = '{0}_symmetry'.format(lig)
+            self.resultsAll.loc[rowName,'dGcalc'] = 1.0*dgCorrection
         else:
             rowName = '{0}_{1}_{2}'.format(lig,wp,replica)
             
@@ -1683,6 +1688,10 @@ class AbsoluteDG:
         arr = line.split()
         
         return(float(arr[-2]))   
+
+    def _calc_symmetry_correction( self ):
+        dg = (-1.0)*self.RT*np.log( float(self.ligSymmetry) )
+        return( dg )
  
     def _summarize_results( self, lig, wpcases ):
         bootnum = 1000
@@ -1703,6 +1712,9 @@ class AbsoluteDG:
                 distrb.append(np.random.normal(self.resultsAll.loc[rowName,'dGcalc'],self.resultsAll.loc[rowName,'errBoot'] ,size=bootnum))
                 frA += self.resultsAll.loc[rowName,'framesA']
                 frB += self.resultsAll.loc[rowName,'framesB']
+            # the final dG comes from concatenated values
+            rowName = '{0}_{1}_all'.format(lig,wp)
+            dg = self.resultsAll.loc[rowName,'dGcalc']
 
             rowName = '{0}_{1}'.format(lig,wp)
             distra = np.array(distra).flatten()
@@ -1716,6 +1728,7 @@ class AbsoluteDG:
 
         #### collect resultsSummary
         rowCorrection = '{0}_{1}'.format(lig,'correction')
+        rowSymmetry = '{0}_{1}'.format(lig,'symmetry')
         if self.bDSSB==True:
             rowName = '{0}_{1}'.format(lig,'dssb')
             dg = -1.0*self.resultsAll.loc[rowName,'dGcalc'] - self.resultsAll.loc[rowCorrection,'dGcalc']
@@ -1724,7 +1737,7 @@ class AbsoluteDG:
         else: 
             rowNameWater = '{0}_{1}'.format(lig,'water')
             rowNameProtein = '{0}_{1}'.format(lig,'protein')
-            dg = self.resultsAll.loc[rowNameWater,'dGcalc'] - self.resultsAll.loc[rowNameProtein,'dGcalc'] - self.resultsAll.loc[rowCorrection,'dGcalc']
+            dg = self.resultsAll.loc[rowNameWater,'dGcalc'] - self.resultsAll.loc[rowNameProtein,'dGcalc'] - self.resultsAll.loc[rowCorrection,'dGcalc'] + self.resultsAll.loc[rowSymmetry,'dGcalc']
             erra = np.sqrt( np.power(self.resultsAll.loc[rowNameProtein,'errAnalyt'],2.0) \
                             + np.power(self.resultsAll.loc[rowNameWater,'errAnalyt'],2.0) )
             errb = np.sqrt( np.power(self.resultsAll.loc[rowNameProtein,'errBoot'],2.0) \
@@ -1750,6 +1763,10 @@ class AbsoluteDG:
             fname = '{0}/restr_dG.dat'.format(holoPath)
             dgCorrection = self._read_analytical_correction( fname )
             self._fill_resultsAll( {}, lig, '', r='Correction', dgCorrection=dgCorrection )
+
+            # ligand symmetry correction
+            dgSymmetry = self._calc_symmetry_correction( )
+            self._fill_resultsAll( {}, lig, '', r='Symmetry', dgCorrection=dgSymmetry )
                 
             for wp in wpcases:
                 for r in range(1,self.replicas+1):            
@@ -1757,6 +1774,11 @@ class AbsoluteDG:
                     resultsfile = '{0}/results.txt'.format(analysispath)
                     res = self._read_neq_results( resultsfile )
                     self._fill_resultsAll( res, lig, wp, replica=r, dgCorrection=dgCorrection )
+                # all (concatenated values)
+                analysispath = '{0}/analyse_all'.format( self._get_specific_path(lig=lig,wp=wp))
+                resultsfile = '{0}/results.txt'.format(analysispath)
+                res = self._read_neq_results( resultsfile )
+                self._fill_resultsAll( res, lig, wp, replica='all', dgCorrection=dgCorrection )
                                
             # calculate final values
             self._summarize_results( lig, wpcases )
