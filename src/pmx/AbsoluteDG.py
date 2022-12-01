@@ -459,6 +459,9 @@ class AbsoluteDG:
         self.rdssb = 2.5
         self.bdssbLongestAxis = False
         self.bGenTiTpr = True # should the TI tpr be generated locally
+        self.kBond = 4184.0 # kJ/mol/nm2 AbsRestraints bond force constant
+        self.kAngle = 41.84 # kJ/mol/rad2 AbsRestraints angle force constant
+        self.kDihedral = 41.84 # kJ/mol/rad2 AbsRestraints dihedral force constant
                 
         # simulation setup
         self.ff = 'amber99sb-star-ildn-mut.ff'
@@ -806,7 +809,7 @@ class AbsoluteDG:
             
             AbsRestraints( strFile=strFile, topLigFile=ligItpFile, topProtFile=protItpFile,
                             indLig=indLig, indProt=indProt, outiiFile=self.iiRestrFile[case], dgFile=restrDgFile,
-                            pdbRestrAtoms=restrAtomsFile)                    
+                            pdbRestrAtoms=restrAtomsFile,kBond=self.kBond,kAngle=self.kAngle,kDihedral=self.kDihedral)
         else: # for apo state, copy or transfer the restraints
             strPathHolo = self._get_specific_path( lig=lig, case='holo', bStrTop=True )
             iiRestrFileHolo = '{0}/ii.itp'.format(strPathHolo)
