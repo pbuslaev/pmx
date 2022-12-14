@@ -1245,8 +1245,8 @@ class AbsoluteDG:
         top = '{0}/{1}'.format(toppath,topfile)
         tpr = '{0}/tpr.tpr'.format(simpath)
         mdout = '{0}/mdout.mdp'.format(simpath)
-        if ('transition' in simType) or ('ti' in simType):
-            tpr = '{0}/ti{1}.tpr'.format(simpath,frNum)        
+#        if ('transition' in simType) or ('ti' in simType):
+#            tpr = '{0}/ti{1}.tpr'.format(simpath,frNum)        
             
         gmx.grompp(f=mdp, c=inStr, p=top, o=tpr, maxwarn=-1, other_flags=' -po {0}'.format(mdout), gmxexec=self.gmxexec, verbose=self.bVerbose)
         clean_gromacs_backup_files(simpath)
@@ -1340,8 +1340,8 @@ class AbsoluteDG:
                         if ('transition' in simType) or ('ti' in simType):
                             if self.bGenTiTpr==True:
                                 for i in range(1,self.frameNum+1):
-                                    inStr = '{0}/frame{1}.gro'.format(simpath,i)
-                                    tpr_path = self._prepare_single_tpr(state=state, simpath=simpath, 
+                                    inStr = '{0}/frame{1}/frame{1}.gro'.format(simpath,i)
+                                    tpr_path = self._prepare_single_tpr(state=state, simpath='{0}/frame{1}'.format(simpath,i), 
                                                   toppath=toppath, simType=simType, 
                                                   topfile=topfile,
                                                   inStr=inStr, mdp=mdp, frNum=i)
@@ -1367,7 +1367,7 @@ class AbsoluteDG:
 
         gmx.trjconv(s=tpr,f=trr,o=frame, sep=True, ur='compact', pbc='mol', other_flags=' -b {0}'.format(startTime), gmxexec=self.gmxexec, verbose=self.bVerbose)
         
-        # move frame0.gro to framen+1.gro
+        # move frame0.gro to framen+1.gro and place frames into respective folders
         frameFiles = os.listdir( tipath )
         maxnum = 0
         for fr in frameFiles:
@@ -1375,11 +1375,16 @@ class AbsoluteDG:
                 num = int( re.search(r'frame(\d+).gro',fr).group(1) )
                 if num>maxnum:
                     maxnum = num
+                if num!=0:
+                    os.system('mkdir {0}/frame{1}'.format(tipath,num))
+                    os.system('mv {0}/{1} {0}/frame{2}/.'.format(tipath,fr,num))
         self.frameNum = maxnum +1
-        cmd = 'mv {0}/frame0.gro {0}/frame{1}.gro'.format(tipath,self.frameNum)
+        os.system('mkdir {0}/frame{1}'.format(tipath,self.frameNum))
+        cmd = 'mv {0}/frame0.gro {0}/frame{1}/frame{1}.gro'.format(tipath,self.frameNum)
         os.system(cmd)
 
         clean_gromacs_backup_files( tipath )
+
         
     def _commands_for_transitions( self, simpath, job ):
         regexp = re.compile('netmount')
@@ -1387,26 +1392,26 @@ class AbsoluteDG:
 
         if self.JOBqueue=='SGE' and self.JOBarray==True:
             cmd1 = 'cd $TMPDIR'
-            cmd2 = 'cp {0}/ti$SGE_TASK_ID.tpr tpr.tpr'.format(simpath)
+            cmd2 = 'cp {0}/frame$SGE_TASK_ID/tpr.tpr tpr.tpr'.format(simpath)
             cmd3 = '$GMXRUN -s tpr.tpr -dhdl dhdl$SGE_TASK_ID.xvg'.format(simpath)
-            cmd4 = 'cp dhdl$SGE_TASK_ID.xvg {0}/.'.format(simpath)
+            cmd4 = 'cp dhdl$SGE_TASK_ID.xvg {0}/frame$SGE_TASK_ID/.'.format(simpath)
             job.cmds = [cmd1,cmd2,cmd3,cmd4]
-        elif self.JOBqueue=='SLURM' and self.JOBarray==False:
-            cmd1 = 'cd {0}'.format(simpath)
-            cmd2 = 'for i in {1..81};do'
-            cmd3 = '$GMXRUN -s ti$i.tpr -dhdl dhdl$i'
+        elif self.JOBqueue=='SGE' and self.JOBarray==False:
+            cmd1 = 'for i in `seq 1 {0}`;do'.format(self.frameNum)
+            cmd2 = 'cd {0}/frame$i'.format(simpath)
+            cmd3 = '$GMXRUN -s tpr.tpr -dhdl dhdl$i.xvg'
             cmd4 = 'done'
             job.cmds = [cmd1,cmd2,cmd3,cmd4]            
         elif self.JOBqueue=='SLURM' and self.JOBarray==True:
             cmd1 = 'cd $TMPDIR'
-            cmd2 = 'cp {0}/ti$SLURM_ARRAY_TASK_ID.tpr tpr.tpr'.format(simpath)
+            cmd2 = 'cp {0}/frame$SLURM_ARRAY_TASK_ID/tpr.tpr tpr.tpr'.format(simpath)
             cmd3 = '$GMXRUN -s tpr.tpr -dhdl dhdl$SLURM_ARRAY_TASK_ID.xvg'.format(simpath)
-            cmd4 = 'cp dhdl$SLURM_ARRAY_TASK_ID.xvg {0}/.'.format(simpath)
+            cmd4 = 'cp dhdl$SLURM_ARRAY_TASK_ID.xvg {0}/frame$SLURM_ARRAY_TASK_ID/.'.format(simpath)
             job.cmds = [cmd1,cmd2,cmd3,cmd4]
         elif self.JOBqueue=='SLURM' and self.JOBarray==False:
-            cmd1 = 'cd {0}'.format(simpath)
-            cmd2 = 'for i in {1..81};do'
-            cmd3 = '$GMXRUN -s ti$i.tpr -dhdl dhdl$i'
+            cmd1 = 'for i in `seq 1 {0}`;do'.format(self.frameNum)
+            cmd2 = 'cd {0}/frame$i'.format(simpath)
+            cmd3 = '$GMXRUN -s tpr.tpr -dhdl dhdl$i.xvg'
             cmd4 = 'done'
             job.cmds = [cmd1,cmd2,cmd3,cmd4]
 
@@ -1549,8 +1554,8 @@ class AbsoluteDG:
         o = '{0}/results.txt'.format(analysispath)
         
         if iA==None or iB==None:
-            fA = ' '.join( glob.glob('{0}/*xvg'.format(stateApath)) )
-            fB = ' '.join( glob.glob('{0}/*xvg'.format(stateBpath)) )
+            fA = ' '.join( glob.glob('{0}/frame*/dhdl*xvg'.format(stateApath)) )
+            fB = ' '.join( glob.glob('{0}/frame*/dhdl*xvg'.format(stateBpath)) )
             oA = '{0}/integ0.dat'.format(analysispath)
             oB = '{0}/integ1.dat'.format(analysispath)
             cmd = 'pmx analyse -fA {0} -fB {1} -o {2} -oA {3} -oB {4} -w {5} -t {6} -b {7}'.format(\
