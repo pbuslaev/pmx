@@ -6,7 +6,7 @@ tools.
 
 import os
 from .utils import which
-from subprocess import call
+import subprocess
 from .library import mdps
 import subprocess
 
@@ -61,13 +61,13 @@ def editconf(f, o='editconf.gro', bt='cubic', d=1.2, other_flags='', verbose=Tru
         gmxexec = get_gmx()
 
     if verbose:
-        call('{gmxexec} editconf -f {f} -o {o} -bt {bt} -d {d} '
-         '{other_flags}'.format(gmxexec=gmxexec, f=f, o=o, bt=bt, d=d, other_flags=other_flags),
-         shell=True)
+        capture_output = False
     else:
-        call('{gmxexec} editconf -f {f} -o {o} -bt {bt} -d {d} '
+        capture_output = True
+
+    subprocess.run('{gmxexec} editconf -f {f} -o {o} -bt {bt} -d {d} '
          '{other_flags}'.format(gmxexec=gmxexec, f=f, o=o, bt=bt, d=d, other_flags=other_flags),
-         shell=True,stdout=subprocess.DEVNULL,stderr=subprocess.STDOUT)
+         shell=True, check=True, capture_output=capture_output)
 
 
 def pdb2gmx(f, o='pdb2gmx.gro', p='topol.top', ff='amber99sb-star-ildn-mut',
@@ -103,11 +103,13 @@ def pdb2gmx(f, o='pdb2gmx.gro', p='topol.top', ff='amber99sb-star-ildn-mut',
         gmxexec = get_gmx()
 
     if verbose:
-        call('{gmxexec} pdb2gmx -f {f} -o {o} -p {p} -ff {ff} -water {water} '
-         '{other_flags}'.format(gmxexec=gmxexec, f=f, o=o, p=p, ff=ff, water=water, other_flags=other_flags), shell=True)
+        capture_output = False
     else:
-        call('{gmxexec} pdb2gmx -f {f} -o {o} -p {p} -ff {ff} -water {water} '
-         '{other_flags}'.format(gmxexec=gmxexec, f=f, o=o, p=p, ff=ff, water=water, other_flags=other_flags), shell=True,stdout=subprocess.DEVNULL,stderr=subprocess.STDOUT)
+        capture_output = True
+
+    subprocess.run('{gmxexec} pdb2gmx -f {f} -o {o} -p {p} -ff {ff} -water {water} '
+         '{other_flags}'.format(gmxexec=gmxexec, f=f, o=o, p=p, ff=ff, water=water, other_flags=other_flags), 
+         shell=True, check=True, capture_output=capture_output)
 
 
 def solvate(cp, cs='spc216.gro', p='topol.top', o='solvate.gro',
@@ -141,11 +143,13 @@ def solvate(cp, cs='spc216.gro', p='topol.top', o='solvate.gro',
         gmxexec = get_gmx()
 
     if verbose:
-        call('{gmxexec} solvate -cp {cp} -cs {cs} -p {p} -o {o} '
-         '{other_flags}'.format(gmxexec=gmxexec, cp=cp, cs=cs, p=p, o=o, other_flags=other_flags),shell=True)
+        capture_output = False
     else:
-        call('{gmxexec} solvate -cp {cp} -cs {cs} -p {p} -o {o} '
-         '{other_flags}'.format(gmxexec=gmxexec, cp=cp, cs=cs, p=p, o=o, other_flags=other_flags),shell=True,stdout=subprocess.DEVNULL,stderr=subprocess.STDOUT)
+        capture_output = True
+
+    subprocess.run('{gmxexec} solvate -cp {cp} -cs {cs} -p {p} -o {o} '
+         '{other_flags}'.format(gmxexec=gmxexec, cp=cp, cs=cs, p=p, o=o, other_flags=other_flags),
+         shell=True, check=True, capture_output=capture_output)
 
 
 def grompp(f, c, p, o='grompp.tpr', maxwarn=0, other_flags='', verbose=True, gmxexec=None):
@@ -180,11 +184,13 @@ def grompp(f, c, p, o='grompp.tpr', maxwarn=0, other_flags='', verbose=True, gmx
         gmxexec = get_gmx()
 
     if verbose:
-        call('{gmxexec} grompp -f {f} -c {c} -r {c} -p {p} -o {o} -maxwarn {maxwarn}'
-         '{other_flags}'.format(gmxexec=gmxexec, f=f, c=c, p=p, o=o, maxwarn=maxwarn, other_flags=other_flags), shell=True)
+        capture_output = False
     else:
-        call('{gmxexec} grompp -f {f} -c {c} -r {c} -p {p} -o {o} -maxwarn {maxwarn}'
-         '{other_flags}'.format(gmxexec=gmxexec, f=f, c=c, p=p, o=o, maxwarn=maxwarn, other_flags=other_flags), shell=True,stdout=subprocess.DEVNULL,stderr=subprocess.STDOUT)
+        capture_output = True
+
+    subprocess.run('{gmxexec} grompp -f {f} -c {c} -r {c} -p {p} -o {o} -maxwarn {maxwarn}'
+         '{other_flags}'.format(gmxexec=gmxexec, f=f, c=c, p=p, o=o, maxwarn=maxwarn, other_flags=other_flags), 
+         shell=True, check=True, capture_output=capture_output)
 
 
 def genion(s, p, o='genion.gro', np=0, nn=0, conc=0.15, neutral=True,
@@ -231,11 +237,14 @@ def genion(s, p, o='genion.gro', np=0, nn=0, conc=0.15, neutral=True,
         other_flags += ' -neutral'
 
     if verbose:
-        call('echo "SOL" | {gmxexec} genion -s {s} -p {p} -o {o} -np {np} -nn {nn} -conc {conc} '
-         '{other_flags}'.format(gmxexec=gmxexec, s=s, p=p, o=o, np=np, nn=nn, conc=conc, other_flags=other_flags), shell=True)
+        capture_output = False
     else:
-        call('echo "SOL" | {gmxexec} genion -s {s} -p {p} -o {o} -np {np} -nn {nn} -conc {conc} '
-         '{other_flags}'.format(gmxexec=gmxexec, s=s, p=p, o=o, np=np, nn=nn, conc=conc, other_flags=other_flags), shell=True,stdout=subprocess.DEVNULL,stderr=subprocess.STDOUT)
+        capture_output = True
+
+    
+    subprocess.run('echo "SOL" | {gmxexec} genion -s {s} -p {p} -o {o} -np {np} -nn {nn} -conc {conc} '
+         '{other_flags}'.format(gmxexec=gmxexec, s=s, p=p, o=o, np=np, nn=nn, conc=conc, other_flags=other_flags), 
+         shell=True, check=True, capture_output=capture_output)
 
 
 def trjconv(f, s, o='trjconv.xtc', ur='compact', pbc='none', fit='none',
@@ -286,22 +295,21 @@ def trjconv(f, s, o='trjconv.xtc', ur='compact', pbc='none', fit='none',
     if sep is True:
         other_flags += ' -sep'
 
-    if fit == 'none':
-        if verbose:
-            call('echo "{out_grp}" | {gmxexec} trjconv -f {f} -s {s} -o {o} -ur {ur} -pbc {pbc}'
-             '{other_flags}'.format(gmxexec=gmxexec, f=f, s=s, o=o, ur=ur, pbc=pbc, out_grp=out_grp, other_flags=other_flags),shell=True)
-        else:
-            call('echo "{out_grp}" | {gmxexec} trjconv -f {f} -s {s} -o {o} -ur {ur} -pbc {pbc}'
-             '{other_flags}'.format(gmxexec=gmxexec, f=f, s=s, o=o, ur=ur, pbc=pbc, out_grp=out_grp, other_flags=other_flags),shell=True,stdout=subprocess.DEVNULL,stderr=subprocess.STDOUT)
+    if verbose:
+        capture_output = False
     else:
-        if verbose:
-            call('echo "{fit_grp}" "{out_grp}" | {gmxexec} trjconv -f {f} -s {s} -o {o} -ur {ur} -pbc {pbc} -fit {fit}'
+        capture_output = True
+
+    if fit == 'none':
+        subprocess.run('echo "{out_grp}" | {gmxexec} trjconv -f {f} -s {s} -o {o} -ur {ur} -pbc {pbc}'
+             '{other_flags}'.format(gmxexec=gmxexec, f=f, s=s, o=o, ur=ur, pbc=pbc, out_grp=out_grp, other_flags=other_flags),
+             shell=True, check=True, capture_output=capture_output)
+    else:
+        
+        subprocess.run('echo "{fit_grp}" "{out_grp}" | {gmxexec} trjconv -f {f} -s {s} -o {o} -ur {ur} -pbc {pbc} -fit {fit}'
              '{other_flags}'.format(gmxexec=gmxexec, f=f, s=s, o=o, ur=ur, pbc=pbc, fit=fit,
-                                   out_grp=out_grp, fit_grp=fit_grp, other_flags=other_flags),shell=True)
-        else:
-            call('echo "{fit_grp}" "{out_grp}" | {gmxexec} trjconv -f {f} -s {s} -o {o} -ur {ur} -pbc {pbc} -fit {fit}'
-             '{other_flags}'.format(gmxexec=gmxexec, f=f, s=s, o=o, ur=ur, pbc=pbc, fit=fit,
-                                   out_grp=out_grp, fit_grp=fit_grp, other_flags=other_flags),shell=True,stdout=subprocess.DEVNULL,stderr=subprocess.STDOUT)
+                                   out_grp=out_grp, fit_grp=fit_grp, other_flags=other_flags), 
+             shell=True, check=True, capture_output=capture_output)
 
 
 def mdrun(s, deffnm='md', other_flags='', verbose=True, gmxexec=None):
@@ -333,9 +341,12 @@ def mdrun(s, deffnm='md', other_flags='', verbose=True, gmxexec=None):
         other_flags += ' -v'
 
     if verbose:
-        call('{gmxexec} mdrun -s {s} -deffnm {deffnm} {other_flags}'.format(gmxexec=gmxexec, s=s, deffnm=deffnm, other_flags=other_flags),shell=True)
+        capture_output = False
     else:
-        call('{gmxexec} mdrun -s {s} -deffnm {deffnm} {other_flags}'.format(gmxexec=gmxexec, s=s, deffnm=deffnm, other_flags=other_flags),shell=True,stdout=subprocess.DEVNULL,stderr=subprocess.STDOUT)
+        capture_output = True
+
+    subprocess.run('{gmxexec} mdrun -s {s} -deffnm {deffnm} {other_flags}'.format(gmxexec=gmxexec, s=s, deffnm=deffnm, other_flags=other_flags),
+                   shell=True, check=True, capture_output=capture_output)
 
 
 def write_mdp(mdp, fout='mdpfile.mdp', nsteps=10000, cutoff=1.0, T=300):
