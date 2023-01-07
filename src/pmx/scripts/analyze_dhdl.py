@@ -60,8 +60,8 @@ def parse_options():
     exclu1 = parser.add_mutually_exclusive_group()
     # the following exclusion groups are for fA/iA and fB/iB:
     # one can either specify -fA or -iA, but one of them is required.
-    exclu2 = parser.add_mutually_exclusive_group(required=True)
-    exclu3 = parser.add_mutually_exclusive_group(required=True)
+    exclu2 = parser.add_mutually_exclusive_group()#required=True)
+    exclu3 = parser.add_mutually_exclusive_group()#required=True)
 
     exclu2.add_argument('-fA',
                         metavar='dhdl',
@@ -306,6 +306,31 @@ def main(args):
     do_ks_test = args.do_ks_test
     quiet = args.quiet
 
+    #---------- find out whether two or only one direction is provided --------
+    filesAB = []
+    filesBA = []
+    statesProvided = 'AB'
+    if (args.iA is None) and (args.iB is None): # no integrated values provided
+        if (args.filesAB is None) and (args.filesBA is None): 
+            exit('Need to provide dhdl.xvg files or integrated work values')
+        elif args.filesAB is None:
+                statesProvided = 'B'
+                _tee(out, 'Only one directional Jarzynski estimator will be used')
+                filesBA = natural_sort(args.filesBA)
+        elif args.filesBA is None: 
+                statesProvided = 'A'
+                _tee(out, 'Only one directional Jarzynski estimator will be used')
+                filesAB = natural_sort(args.filesAB)
+        else:
+            filesAB = natural_sort(args.filesAB)
+            filesBA = natural_sort(args.filesBA)
+    elif (args.iA is None) or (args.iB is None):
+        if args.iA is None:
+            statesProvided = 'B'
+        else:
+            statesProvided = 'A'
+        _tee(out, 'Only one directional Jarzynski estimator will be used')
+
     # -------------------
     # Select output units
     # -------------------
@@ -335,14 +360,16 @@ def main(args):
 
     # If list of dhdl.xvg files are provided, parse dhdl
     # --------------------------------------------------
-    if args.filesAB is not None and args.filesBA is not None:
-        filesAB = natural_sort(args.filesAB)
-        filesBA = natural_sort(args.filesBA)
+    res_ab = []
+    res_ba = []
+    if args.iA is None and args.iB is None:
         # If random selection is chosen, do this before reading files and
         # calculating the work values.
         if args.rand is not None:
-            filesAB = np.random.choice(filesAB, size=args.rand, replace=False)
-            filesBA = np.random.choice(filesBA, size=args.rand, replace=False)
+            if 'A' in statesProvided:
+                filesAB = np.random.choice(filesAB, size=args.rand, replace=False)
+            if 'B' in statesProvided:
+                filesBA = np.random.choice(filesBA, size=args.rand, replace=False)
             _tee(out, 'Selected random subset of %d trajectories.' % args.rand,
                  quiet=quiet)
 
@@ -354,14 +381,18 @@ def main(args):
             _tee(out, ' First trajectory read: %i' % first, quiet=quiet)
             _tee(out, ' Last trajectory read: %i' % last, quiet=quiet)
             _tee(out, '', quiet=quiet)
-            filesAB = filesAB[first:last]
-            filesBA = filesBA[first:last]
+            if 'A' in statesProvided:
+                filesAB = filesAB[first:last]
+            if 'B' in statesProvided:
+                filesBA = filesBA[first:last]
 
         # If index values provided, select the files needed
         if args.index is not None:
             # Avoid index out of range error if "wrong" indices are provided
-            filesAB = [filesAB[i] for i in args.index if i < len(filesAB)]
-            filesBA = [filesBA[i] for i in args.index if i < len(filesBA)]
+            if 'A' in statesProvided:
+                filesAB = [filesAB[i] for i in args.index if i < len(filesAB)]
+            if 'B' in statesProvided:
+                filesBA = [filesBA[i] for i in args.index if i < len(filesBA)]
             # ...but warn if this happens
             if any(i > (len(filesAB) - 1) for i in args.index):
                 warnings.warn('\nindex out of range for some of your chosen '
@@ -374,8 +405,10 @@ def main(args):
 
         # when skipping start count from end: in this way the last frame is
         # always included, and what can change is the first one
-        filesAB = list(reversed(filesAB[::-skip]))
-        filesBA = list(reversed(filesBA[::-skip]))
+        if 'A' in statesProvided:
+            filesAB = list(reversed(filesAB[::-skip]))
+        if 'B' in statesProvided:
+            filesBA = list(reversed(filesBA[::-skip]))
 
         # --------------------
         # Now read in the data
@@ -387,33 +420,37 @@ def main(args):
             print('                   PROCESSING THE DATA')
             print(' ========================================================')
             print('  Forward Data')
-        res_ab = read_dgdl_files(filesAB, lambda0=0,
+        if 'A' in statesProvided:
+            res_ab = read_dgdl_files(filesAB, lambda0=0,
                                  invert_values=False, verbose=not quiet, sigmoid=sigmoid)
+            _dump_integ_file(args.oA, filesAB, res_ab)
+
         if quiet is False:
             print('  Reverse Data')
-        res_ba = read_dgdl_files(filesBA, lambda0=1,
+        if 'B' in statesProvided:
+            res_ba = read_dgdl_files(filesBA, lambda0=1,
                                  invert_values=reverseB, verbose=not quiet, sigmoid=sigmoid)
-
-        _dump_integ_file(args.oA, filesAB, res_ab)
-        _dump_integ_file(args.oB, filesBA, res_ba)
+            _dump_integ_file(args.oB, filesBA, res_ba)
 
     # If integrated work values are given instead, read those
     # -------------------------------------------------------
     elif args.iA is not None and args.iB is not None:
-        res_ab = []
-        res_ba = []
-        print('  Reading integrated values (A->B) from', args.iA)
-        res_ab.extend(_data_from_file(args.iA))
-        print('  Reading integrated values (B->A) from', args.iB)
-        res_ba.extend(_data_from_file(args.iB))
+        if 'A' in statesProvided:
+            print('  Reading integrated values (A->B) from', args.iA)
+            res_ab.extend(_data_from_file(args.iA))
+        if 'B' in statesProvided:
+            print('  Reading integrated values (B->A) from', args.iB)
+            res_ba.extend(_data_from_file(args.iB))
         # If slice values provided, select the files needed.
         if args.slice is not None:
             first = args.slice[0]
             last = args.slice[1]
             _tee(out, '  Keeping work values from %i to %i.' % (first, last))
             _tee(out, '')
-            res_ab = res_ab[first:last]
-            res_ba = res_ba[first:last]
+            if 'A' in statesProvided:
+                res_ab = res_ab[first:last]
+            if 'B' in statesProvided:
+                res_ba = res_ba[first:last]
 
     # If a mix of dhdl.xvg files and integrated work values are given
     # ---------------------------------------------------------------
@@ -443,14 +480,16 @@ def main(args):
     _tee(out, ' ========================================================', quiet=quiet)
     _tee(out, '                       ANALYSIS', quiet=quiet)
     _tee(out, ' ========================================================', quiet=quiet)
-    _tee(out, '  Number of forward (0->1) trajectories: %d' % len(res_ab), quiet=quiet)
-    _tee(out, '  Number of reverse (1->0) trajectories: %d' % len(res_ba), quiet=quiet)
+    if 'A' in statesProvided:
+        _tee(out, '  Number of forward (0->1) trajectories: %d' % len(res_ab), quiet=quiet)
+    if 'B' in statesProvided:
+        _tee(out, '  Number of reverse (1->0) trajectories: %d' % len(res_ba), quiet=quiet)
     _tee(out, '  Temperature : %.2f K' % T, quiet=quiet)
 
     # ============================
     # Crooks Gaussian Intersection
     # ============================
-    if 'cgi' in methods:
+    if 'cgi' in methods and 'AB' in statesProvided:
         _tee(out, '\n --------------------------------------------------------', quiet=quiet)
         _tee(out, '             Crooks Gaussian Intersection     ', quiet=quiet)
         _tee(out, ' --------------------------------------------------------', quiet=quiet)
@@ -495,7 +534,7 @@ def main(args):
     # --------------
     # Normality test
     # --------------
-    if do_ks_test:
+    if do_ks_test and 'AB' in statesProvided:
         if quiet is False:
             print('\n  Running KS-test...')
         q0, lam00, check0, bOk0 = ks_norm_test(res_ab)
@@ -517,7 +556,7 @@ def main(args):
     # ========================
     # Bennett Acceptance Ratio
     # ========================
-    if 'bar' in methods:
+    if 'bar' in methods and 'AB' in statesProvided:
         _tee(out, '\n --------------------------------------------------------', quiet=quiet)
         _tee(out, '             Bennett Acceptance Ratio     ', quiet=quiet)
         _tee(out, ' --------------------------------------------------------', quiet=quiet)
@@ -556,58 +595,62 @@ def main(args):
 
         if quiet is True:
             print('Running Jarz analysis...')
-        jarz = Jarz(wf=res_ab, wr=res_ba, T=T, nboots=nboots, nblocks=nblocks)
+        jarz = Jarz(wf=res_ab, wr=res_ba, T=T, nboots=nboots, nblocks=nblocks, statesProvided=statesProvided)
         if args.pickle:
             pickle.dump(jarz, open("jarz_results.pkl", "wb"))
 
-        _tee(out, '  JARZ: dG Forward = {dg:8.{p}f} {u}'.format(dg=jarz.dg_for*unit_fact,
+        if 'A' in statesProvided:
+            _tee(out, '  JARZ: dG Forward = {dg:8.{p}f} {u}'.format(dg=jarz.dg_for*unit_fact,
                                                                 p=prec, u=units), quiet=quiet)
-        _tee(out, '  JARZ: dG Reverse = {dg:8.{p}f} {u}'.format(dg=jarz.dg_rev*unit_fact,
+        if 'B' in statesProvided:
+            _tee(out, '  JARZ: dG Reverse = {dg:8.{p}f} {u}'.format(dg=jarz.dg_rev*unit_fact,
                                                                 p=prec, u=units), quiet=quiet)
-        _tee(out, '  JARZ: dG Mean    = {dg:8.{p}f} {u}'.format(dg=jarz.dg_mean*unit_fact,
+        if 'AB' in statesProvided:
+            _tee(out, '  JARZ: dG Mean    = {dg:8.{p}f} {u}'.format(dg=jarz.dg_mean*unit_fact,
                                                                 p=prec, u=units), quiet=quiet)
         if nboots > 0:
-            _tee(out, '  JARZ: Std Err Forward (bootstrap) = {e:8.{p}f} {u}'.format(e=jarz.err_boot_for*unit_fact,
-                                                                                    p=prec, u=units), quiet=quiet)
-            _tee(out, '  JARZ: Std Err Reverse (bootstrap) = {e:8.{p}f} {u}'.format(e=jarz.err_boot_rev*unit_fact,
-                                                                                    p=prec, u=units), quiet=quiet)
+            if 'A' in statesProvided:
+                _tee(out, '  JARZ: Std Err Forward (bootstrap) = {e:8.{p}f} {u}'.format(e=jarz.err_boot_for*unit_fact, p=prec, u=units), quiet=quiet)
+            if 'B' in statesProvided:
+                _tee(out, '  JARZ: Std Err Reverse (bootstrap) = {e:8.{p}f} {u}'.format(e=jarz.err_boot_rev*unit_fact, p=prec, u=units), quiet=quiet)
 
         if nblocks > 1:
-            _tee(out, '  JARZ: Std Err Forward (blocks) = {e:8.{p}f} {u}'.format(e=jarz.err_blocks_for*unit_fact,
-                                                                                 p=prec, u=units), quiet=quiet)
-            _tee(out, '  JARZ: Std Err Reverse (blocks) = {e:8.{p}f} {u}'.format(e=jarz.err_blocks_rev*unit_fact,
-                                                                                 p=prec, u=units), quiet=quiet)
+            if 'A' in statesProvided:
+                _tee(out, '  JARZ: Std Err Forward (blocks) = {e:8.{p}f} {u}'.format(e=jarz.err_blocks_for*unit_fact, p=prec, u=units), quiet=quiet)
+            if 'B' in statesProvided:
+                _tee(out, '  JARZ: Std Err Reverse (blocks) = {e:8.{p}f} {u}'.format(e=jarz.err_blocks_rev*unit_fact, p=prec, u=units), quiet=quiet)
 
         # -------------------------------------
         # Jarzynski with Gaussian approximation
         # -------------------------------------
         if quiet is True:
             print('Running Jarzynski Gaussian approximation analysis...')
-        jarzGauss = JarzGauss(wf=res_ab, wr=res_ba, T=T, nboots=nboots, nblocks=nblocks)
+        jarzGauss = JarzGauss(wf=res_ab, wr=res_ba, T=T, nboots=nboots, nblocks=nblocks, statesProvided=statesProvided)
         if args.pickle:
             pickle.dump(jarzGauss, open("jarz_gauss_results.pkl", "wb"))
 
-        _tee(out, '  JARZ_Gauss: dG Forward = {dg:8.{p}f} {u}'.format(dg=jarzGauss.dg_for*unit_fact,
-                                                                p=prec, u=units), quiet=quiet)
-        _tee(out, '  JARZ_Gauss: dG Reverse = {dg:8.{p}f} {u}'.format(dg=jarzGauss.dg_rev*unit_fact,
-                                                                p=prec, u=units), quiet=quiet)
-        _tee(out, '  JARZ_Gauss: dG Mean    = {dg:8.{p}f} {u}'.format(dg=(jarzGauss.dg_for+jarzGauss.dg_rev)/2.0*unit_fact,
-                                                                p=prec, u=units), quiet=quiet)
-        _tee(out, '  JARZ_Gauss: Std Err (analytical) Forward = {dg:8.{p}f} {u}'.format(dg=jarzGauss.err_for*unit_fact,
-                                                                p=prec, u=units), quiet=quiet)
-        _tee(out, '  JARZ_Gauss: Std Err (analytical) Reverse = {dg:8.{p}f} {u}'.format(dg=jarzGauss.err_rev*unit_fact,
-                                                                p=prec, u=units), quiet=quiet)
+        if 'A' in statesProvided:
+            _tee(out, '  JARZ_Gauss: dG Forward = {dg:8.{p}f} {u}'.format(dg=jarzGauss.dg_for*unit_fact, p=prec, u=units), quiet=quiet)
+        if 'B' in statesProvided:
+            _tee(out, '  JARZ_Gauss: dG Reverse = {dg:8.{p}f} {u}'.format(dg=jarzGauss.dg_rev*unit_fact,
+p=prec, u=units), quiet=quiet)
+        if 'AB' in statesProvided:
+            _tee(out, '  JARZ_Gauss: dG Mean    = {dg:8.{p}f} {u}'.format(dg=(jarzGauss.dg_for+jarzGauss.dg_rev)/2.0*unit_fact, p=prec, u=units), quiet=quiet)
+        if 'A' in statesProvided:
+            _tee(out, '  JARZ_Gauss: Std Err (analytical) Forward = {dg:8.{p}f} {u}'.format(dg=jarzGauss.err_for*unit_fact, p=prec, u=units), quiet=quiet)
+        if 'B' in statesProvided:
+            _tee(out, '  JARZ_Gauss: Std Err (analytical) Reverse = {dg:8.{p}f} {u}'.format(dg=jarzGauss.err_rev*unit_fact, p=prec, u=units), quiet=quiet)
         if nboots > 0:
-            _tee(out, '  JARZ_Gauss: Std Err Forward (bootstrap) = {e:8.{p}f} {u}'.format(e=jarzGauss.err_boot_for*unit_fact,
-                                                                                    p=prec, u=units), quiet=quiet)
-            _tee(out, '  JARZ_Gauss: Std Err Reverse (bootstrap) = {e:8.{p}f} {u}'.format(e=jarzGauss.err_boot_rev*unit_fact,
-                                                                                    p=prec, u=units), quiet=quiet)
+            if 'A' in statesProvided:
+                _tee(out, '  JARZ_Gauss: Std Err Forward (bootstrap) = {e:8.{p}f} {u}'.format(e=jarzGauss.err_boot_for*unit_fact, p=prec, u=units), quiet=quiet)
+            if 'B' in statesProvided:
+                _tee(out, '  JARZ_Gauss: Std Err Reverse (bootstrap) = {e:8.{p}f} {u}'.format(e=jarzGauss.err_boot_rev*unit_fact, p=prec, u=units), quiet=quiet)
 
         if nblocks > 1:
-            _tee(out, '  JARZ_Gauss: Std Err Forward (blocks) = {e:8.{p}f} {u}'.format(e=jarzGauss.err_blocks_for*unit_fact,
-                                                                                 p=prec, u=units), quiet=quiet)
-            _tee(out, '  JARZ_Gauss: Std Err Reverse (blocks) = {e:8.{p}f} {u}'.format(e=jarzGauss.err_blocks_rev*unit_fact,
-                                                                                 p=prec, u=units), quiet=quiet)
+            if 'A' in statesProvided:
+                _tee(out, '  JARZ_Gauss: Std Err Forward (blocks) = {e:8.{p}f} {u}'.format(e=jarzGauss.err_blocks_for*unit_fact, p=prec, u=units), quiet=quiet)
+            if 'B' in statesProvided:
+                _tee(out, '  JARZ_Gauss: Std Err Reverse (blocks) = {e:8.{p}f} {u}'.format(e=jarzGauss.err_blocks_rev*unit_fact, p=prec, u=units), quiet=quiet)
 
     _tee(out, ' ========================================================', quiet=quiet)
     
@@ -651,13 +694,17 @@ def main(args):
             # for the moment, show values only under specific circumstances
             if hasattr(jarz, 'dg_mean'):
                 show_dg = jarz.dg_mean * unit_fact
+            elif 'A' in statesProvided:
+                show_dg = jarz.dg_for
+            elif 'B' in statesProvided:
+                show_dg = jarz.dg_rev
             else:
                 show_dg = None
             show_err = None
             # plot
             plot_work_dist(fname=args.wplot, wf=res_ab, wr=res_ba, dG=show_dg,
                            dGerr=show_err, nbins=args.nbins, dpi=args.dpi,
-                           units=units)
+                           units=units,statesProvided=statesProvided)
 
     if quiet is True:
         print('Done')

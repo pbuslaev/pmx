@@ -292,8 +292,8 @@ def ks_norm_test(data, alpha=0.05, refks=None):
     return (1-q), lam0, check, bOk
 
 
-def plot_work_dist(wf, wr, fname='Wdist.png', nbins=20, dG=None, dGerr=None,
-                   units='kJ/mol', dpi=300):
+def plot_work_dist(wf=[], wr=[], fname='Wdist.png', nbins=20, dG=None, dGerr=None,
+                   units='kJ/mol', dpi=300, statesProvided='AB'):
     '''Plots forward and reverse work distributions. Optionally, it adds the
     estimate of the free energy change and its uncertainty on the plot.
 
@@ -315,6 +315,8 @@ def plot_work_dist(wf, wr, fname='Wdist.png', nbins=20, dG=None, dGerr=None,
         the units of dG and dGerr. Default is 'kJ/mol'.
     dpi : int
         resolution of the saved image file.
+    statesProvided: str
+        work values for two states or only one
 
     Returns
     -------
@@ -347,30 +349,59 @@ def plot_work_dist(wf, wr, fname='Wdist.png', nbins=20, dG=None, dGerr=None,
     plt.figure(figsize=(8, 6))
     x1 = list(range(len(wf)))
     x2 = list(range(len(wr)))
-    if x1 > x2:
+    if 'A' in statesProvided:
+        x1 = list(range(len(wf)))
+    if 'B' in statesProvided:
+        x2 = list(range(len(wr)))
+    if len(x1) > len(x2):
         x = x1
     else:
         x = x2
-    mf, devf, Af = data2gauss(wf)
-    mb, devb, Ab = data2gauss(wr)
+    if 'A' in statesProvided:
+        mf, devf, Af = data2gauss(wf)
+    if 'B' in statesProvided:
+        mb, devb, Ab = data2gauss(wr)
 
-    maxi = max(wf+wr)
-    mini = min(wf+wr)
+    if 'AB' in statesProvided: 
+        maxi = max(wf+wr)
+        mini = min(wf+wr)
+        plt.subplot(1, 2, 1)
+        plt.plot(x1, wf, 'g-', linewidth=2, label="Forward (0->1)", alpha=.3)
+        plt.plot(x2, wr, 'b-', linewidth=2, label="Backward (1->0)", alpha=.3)
+        ### smoothing ###
+        try:
+            sm1 = smooth(np.array(wf))
+            plt.plot(x1, sm1, 'g-', linewidth=3)
+        except:
+            print("Plotting: no smoothing for Wf")
+        try:
+            sm2 = smooth(np.array(wr))
+            plt.plot(x2, sm2, 'b-', linewidth=3)
+        except:
+            print("Plotting: no smoothing for Wr")
+    elif 'A' in statesProvided: 
+        maxi = max(wf)
+        mini = min(wf)
+        plt.subplot(1, 2, 1)
+        plt.plot(x1, wf, 'g-', linewidth=2, label="Forward (0->1)", alpha=.3)
+        ### smoothing ###
+        try:
+            sm1 = smooth(np.array(wf))
+            plt.plot(x1, sm1, 'g-', linewidth=3)
+        except:
+            print("Plotting: no smoothing for Wf")
+    elif 'B' in statesProvided: 
+        maxi = max(wr)
+        mini = min(wr)
+        plt.subplot(1, 2, 1)
+        plt.plot(x2, wr, 'b-', linewidth=2, label="Backward (1->0)", alpha=.3)
+        ### smoothing ###
+        try:
+            sm2 = smooth(np.array(wr))
+            plt.plot(x2, sm2, 'b-', linewidth=3)
+        except:
+            print("Plotting: no smoothing for Wr")
 
-    plt.subplot(1, 2, 1)
-    plt.plot(x1, wf, 'g-', linewidth=2, label="Forward (0->1)", alpha=.3)
-    plt.plot(x2, wr, 'b-', linewidth=2, label="Backward (1->0)", alpha=.3)
-    ### smoothing ###
-    try:
-        sm1 = smooth(np.array(wf))
-        plt.plot(x1, sm1, 'g-', linewidth=3)
-    except:
-        print("Plotting: no smoothing for Wf")
-    try:
-        sm2 = smooth(np.array(wr))
-        plt.plot(x2, sm2, 'b-', linewidth=3)
-    except:
-        print("Plotting: no smoothing for Wr")
     plt.legend(shadow=True, fancybox=True, loc='upper center',
                prop={'size': 12})
     plt.ylabel(r'W [kJ/mol]', fontsize=20)
@@ -381,19 +412,30 @@ def plot_work_dist(wf, wr, fname='Wdist.png', nbins=20, dG=None, dGerr=None,
     for val in xl.spines.values():
         val.set_lw(2)
     plt.subplot(1, 2, 2)
-    plt.hist(wf, bins=nbins, orientation='horizontal', facecolor='green',
+    if 'A' in statesProvided:
+        plt.hist(wf, bins=nbins, orientation='horizontal', facecolor='green',
              alpha=.75, density=True)
-    plt.hist(wr, bins=nbins, orientation='horizontal', facecolor='blue',
+    if 'B' in statesProvided:
+        plt.hist(wr, bins=nbins, orientation='horizontal', facecolor='blue',
              alpha=.75, density=True)
 
     x = np.arange(mini, maxi, .5)
 
-    y1 = gauss_func(Af, mf, devf, x)
-    y2 = gauss_func(Ab, mb, devb, x)
+    if 'AB' in statesProvided:
+        y1 = gauss_func(Af, mf, devf, x)
+        y2 = gauss_func(Ab, mb, devb, x)
+        plt.plot(y1, x, 'g--', linewidth=2)
+        plt.plot(y2, x, 'b--', linewidth=2)
+        size = max([max(y1), max(y2)])
+    elif 'A' in statesProvided:
+        y1 = gauss_func(Af, mf, devf, x)
+        plt.plot(y1, x, 'g--', linewidth=2)
+        size = max(y1)
+    elif 'B' in statesProvided:
+        y2 = gauss_func(Ab, mb, devb, x)
+        plt.plot(y2, x, 'b--', linewidth=2)
+        size = max(y2)
 
-    plt.plot(y1, x, 'g--', linewidth=2)
-    plt.plot(y2, x, 'b--', linewidth=2)
-    size = max([max(y1), max(y2)])
     res_x = [dG, dG]
     res_y = [0, size*1.2]
     if dG is not None and dGerr is not None:

@@ -33,6 +33,8 @@ class Jarz:
     nblocks : int, optional
         how many blocks to divide the input work values into for the estimation
         of the standard error. Default is one (do not estimate the error).
+    statesProvided : string
+        both directions 'AB', forward only 'A', reverse only 'B'
 
     Examples
     --------
@@ -65,32 +67,41 @@ class Jarz:
         separating the input work values into groups/blocks.
     '''
 
-    def __init__(self, wf, wr, T=298.15, nboots=0, nblocks=1):
-        self.wf = np.array(wf)
-        self.wr = np.array(wr)
+    def __init__(self, wf=[], wr=[], T=298.15, nboots=0, nblocks=1, statesProvided='AB'):
+        if 'A' in statesProvided:
+            self.wf = np.array(wf)
+        if 'B' in statesProvided:
+            self.wr = np.array(wr)
         self.T = float(T)
         self.nboots = nboots
         self.nblocks = nblocks
 
         # Calculate all Jarz properties available
-        self.dg_for = self.calc_dg(w=self.wf, T=self.T, bReverse=False)
-        self.dg_rev = self.calc_dg(w=self.wr, T=self.T, bReverse=True)
-        self.dg_mean = (self.dg_for + self.dg_rev) * 0.5
+        if 'A' in statesProvided:
+            self.dg_for = self.calc_dg(w=self.wf, T=self.T, bReverse=False)
+        if 'B' in statesProvided:
+            self.dg_rev = self.calc_dg(w=self.wr, T=self.T, bReverse=True)
+        if 'AB' in statesProvided:
+            self.dg_mean = (self.dg_for + self.dg_rev) * 0.5
 
         if nboots > 0:
-            self.err_boot_for = self.calc_err_boot(w=self.wf, T=self.T,
+            if 'A' in statesProvided:
+                self.err_boot_for = self.calc_err_boot(w=self.wf, T=self.T,
                                                    nboots=self.nboots,
                                                    bReverse=False)
-            self.err_boot_rev = self.calc_err_boot(w=self.wr, T=self.T,
+            if 'B' in statesProvided:
+                self.err_boot_rev = self.calc_err_boot(w=self.wr, T=self.T,
                                                    nboots=self.nboots,
                                                    bReverse=True)
 
         if nblocks > 1:
-            self.err_blocks_for = self.calc_err_blocks(w=self.wf,
+            if 'A' in statesProvided:
+                self.err_blocks_for = self.calc_err_blocks(w=self.wf,
                                                        T=self.T,
                                                        nblocks=self.nblocks,
                                                        bReverse=False)
-            self.err_blocks_rev = self.calc_err_blocks(w=self.wr,
+            if 'B' in statesProvided:
+                self.err_blocks_rev = self.calc_err_blocks(w=self.wr,
                                                        T=self.T,
                                                        nblocks=self.nblocks,
                                                        bReverse=True)
@@ -246,6 +257,8 @@ class JarzGauss:
     nblocks : int, optional
         how many blocks to divide the input work values into for the estimation
         of the standard error. Default is one (do not estimate the error).
+    statesProvided: str, optional
+        two directions or one
 
     Examples
     --------
@@ -282,34 +295,41 @@ class JarzGauss:
         separating the input work values into groups/blocks.
     '''
 
-    def __init__(self, wf, wr, T=298.15, nboots=0, nblocks=1):
-        self.wf = np.array(wf)
-        self.wr = np.array(wr)
+    def __init__(self, wf=[], wr=[], T=298.15, nboots=0, nblocks=1, statesProvided='AB'):
+        if 'A' in statesProvided:
+            self.wf = np.array(wf)
+        if 'B' in statesProvided:
+            self.wr = np.array(wr)
         self.T = float(T)
         self.nboots = nboots
         self.nblocks = nblocks
 
         # Calculate all Jarz properties available
-        self.dg_for = self.calc_dg(w=self.wf, T=self.T, bReverse=False)
-        self.err_for = self.calc_err(w=self.wf, T=self.T, bReverse=False)
-
-        self.dg_rev = self.calc_dg(w=self.wr, T=self.T, bReverse=True)
-        self.err_rev = self.calc_err(w=self.wr, T=self.T, bReverse=True)
+        if 'A' in statesProvided:
+            self.dg_for = self.calc_dg(w=self.wf, T=self.T, bReverse=False)
+            self.err_for = self.calc_err(w=self.wf, T=self.T, bReverse=False)
+        if 'B' in statesProvided:
+            self.dg_rev = self.calc_dg(w=self.wr, T=self.T, bReverse=True)
+            self.err_rev = self.calc_err(w=self.wr, T=self.T, bReverse=True)
 
         if nboots > 0:
-            self.err_boot_for = self.calc_err_boot(w=self.wf, T=self.T,
+            if 'A' in statesProvided:
+                self.err_boot_for = self.calc_err_boot(w=self.wf, T=self.T,
                                                    nboots=self.nboots,
                                                    bReverse=False)
-            self.err_boot_rev = self.calc_err_boot(w=self.wr, T=self.T,
+            if 'B' in statesProvided:
+                self.err_boot_rev = self.calc_err_boot(w=self.wr, T=self.T,
                                                    nboots=self.nboots,
                                                    bReverse=True)
 
         if nblocks > 1:
-            self.err_blocks_for = self.calc_err_blocks(w=self.wf,
+            if 'A' in statesProvided:
+                self.err_blocks_for = self.calc_err_blocks(w=self.wf,
                                                        T=self.T,
                                                        nblocks=self.nblocks,
                                                        bReverse=False)
-            self.err_blocks_rev = self.calc_err_blocks(w=self.wr,
+            if 'B' in statesProvided:
+                self.err_blocks_rev = self.calc_err_blocks(w=self.wr,
                                                        T=self.T,
                                                        nblocks=self.nblocks,
                                                        bReverse=True)
