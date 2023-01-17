@@ -808,10 +808,15 @@ class AbsoluteDG:
             self.iiRestrFile[case] = '{0}/ii.itp'.format(strPath)
             restrDgFile = '{0}/restr_dG.dat'.format(strPath)
             restrAtomsFile = '{0}/restr_atoms.pdb'.format(strPath)
+            # may require apo file for restraint generation
+            strFileApo = None
+            if self.apoCase!=None: 
+                outPathApo = self._get_specific_path( lig=lig, state='apo', wp='protein' ) 
+                strFileApo = '{0}/system.pdb'.format(outPathApo)
             
             AbsRestraints( strFile=strFile, topLigFile=ligItpFile, topProtFile=protItpFile,
                             indLig=indLig, indProt=indProt, outiiFile=self.iiRestrFile[case], dgFile=restrDgFile,
-                            pdbRestrAtoms=restrAtomsFile,kBond=self.kBond,kAngle=self.kAngle,kDihedral=self.kDihedral)
+                            pdbRestrAtoms=restrAtomsFile,kBond=self.kBond,kAngle=self.kAngle,kDihedral=self.kDihedral, strFileApo=strFileApo)
         else: # for apo state, copy or transfer the restraints
             strPathHolo = self._get_specific_path( lig=lig, case='holo', bStrTop=True )
             iiRestrFileHolo = '{0}/ii.itp'.format(strPathHolo)

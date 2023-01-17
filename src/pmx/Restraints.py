@@ -23,6 +23,7 @@ class AbsRestraints:
         # structure: one of those need to be present
         self.system = None # pmx model
         self.strFile = None 
+        self.strFileApo = None
 
         # booleans
         self.bLigMaxSpread = False
@@ -35,6 +36,9 @@ class AbsRestraints:
         self.kBond = 4184.0
         self.kAngle = 41.84
         self.kDihedral = 41.84
+
+        # optional max distance allowed between apo and holo atoms (in nm)
+        self.apoDistanceLimit = 0.2 # nm
 
         # files
         self.topLigFile = None
@@ -69,6 +73,11 @@ class AbsRestraints:
             sys.stdout.write('Need to provide structure file')
             sys.exit(0)
         self.system = Model(self.strFile) 
+
+        # if apo pdb is given
+        self.systemApo = None
+        if self.strFileApo!=None:
+            self.systemApo = Model(self.strFileApo) 
 
         # topologies
         self.protTop = None
@@ -151,7 +160,9 @@ class AbsRestraints:
 
         # check if all went fine
         if self.indProt1[0]==-42 or self.indProt2[0]==-42 or self.indProt3[0]==-42:
-            print('Something went wrong in protein atom selection. Exiting...')
+            print('Something went wrong in protein atom selection.')
+            print('Atoms identified: {0} {1} {2}'.format(self.indProt1[0],self.indProt2[0],self.indProt3[0]))
+            print('Exiting...')
             sys.exit(0)
 
         # distance
@@ -590,6 +601,10 @@ class AbsRestraints:
                 if (a.name=='CA' or a.name=='BB' or self.bMartini==True) and (a.id-1 not in usedID) and (a.id-1 in self.indProt):
                     d = a - ligAtom 
                     bAngle = True
+                    if self.strFileApo != None: # check the distance against the closest apo structure atom
+                        atomApoInd,atomApo,apoDist = self._closest_apo_atom_dist(a)
+                        if apoDist > self.apoDistanceLimit:
+                            continue
                     if bAngleCheck==1: # check for angle 1
                         ang = ligAtom.angle(self.aLig2,a,degree=True)
                         bAngle = self._check_angle( ang )
@@ -601,6 +616,11 @@ class AbsRestraints:
                         mindist = d
                         indProt = a.id-1
         return(indProt)
+
+    def _closest_apo_atom_dist( self, aholo ):
+        # find the distance to the closest apo atom
+        d = _find_atom_inY( aholo.id, self.system, self.systemApo, bReturnDist=True ) 
+        return(d)
 
     def _identify_protein_atoms( self, system, indLig1, indLig2, indLig3 ):
         indProt1 = -42
@@ -702,7 +722,7 @@ class AbsRestraints:
 ########################################################################
 ####### functions to transfer the restraints between two systems #######
 ########################################################################
-def _find_atom_inY( ind, strX, strY, bName=True ):
+def _find_atom_inY( ind, strX, strY, bName=True, bResName=False, indMap={}, bReturnDist=False ):
     """Given an atom index in strX, identify the closest atom in strY.
     Optionally, can also require atom names to match.
 
@@ -714,11 +734,17 @@ def _find_atom_inY( ind, strX, strY, bName=True ):
         reference structure
     stryY: Model
         structure to search in
+    indMap: dict
+        dictionary of index maps indMap[indX]=indY
 
     Attributes
     ----------
     bName: bool
         should atom names also match. Default True
+    bResName: bool
+        should residue names also match. Default False
+    bReturnDist: bool
+        return distance between atoms. Default False
 
     Returns
     -------
@@ -729,18 +755,27 @@ def _find_atom_inY( ind, strX, strY, bName=True ):
     """
 
     aX = strX.atoms[ind-1]
+    aX.a2nm()
     aY = 0
     minDist = 999.99
     for a in strY.atoms:
+        a.a2nm()
         if bName==True and a.name!=aX.name:
+            continue
+        if bResName==True and a.resname!=aX.resname:
+            continue
+        if a.id in indMap.values():
             continue
         d = a-aX
         if d<minDist:
             minDist = d
             aY = a
-    return(aY.id,aY)
+    if bReturnDist==True:
+        return(aY.id,aY,minDist)
+    else:
+        return(aY.id,aY)
 
-def transfer_ii( pdbX, pdbY, iiInpFname, iiOutFname, bName=True, pdbRestrAtoms=None ):
+def transfer_ii( pdbX, pdbY, iiInpFname, iiOutFname, bName=True, bResName=True, pdbRestrAtoms=None ):
     """Transfers intermolecular restraints from one structure to another,
     i.e. from pdbX to pdbY. This is done by searching for closest atoms
     in the structures.
@@ -762,6 +797,8 @@ def transfer_ii( pdbX, pdbY, iiInpFname, iiOutFname, bName=True, pdbRestrAtoms=N
     ----------
     bName: bool
         should atom names also match. Default True
+    bResName: bool
+        should residue names also match. Default True
     """
 
     strX = Model(pdbX)
@@ -773,6 +810,7 @@ def transfer_ii( pdbX, pdbY, iiInpFname, iiOutFname, bName=True, pdbRestrAtoms=N
 
     fp = open(iiOutFname,'w')
     atomsY = [] 
+    indMap = {} # map of identified indeces: indMap{indX} = indY
     for l in lines:
         if '[' in l:
             fp.write(l)
@@ -788,10 +826,14 @@ def transfer_ii( pdbX, pdbY, iiInpFname, iiOutFname, bName=True, pdbRestrAtoms=N
             out = []
             for i in range(1,len(foo)+1):
                 if i>5:
-                    atomIndY,atomY = _find_atom_inY( int(foo[-i]), strX, strY, bName=bName )
-                    out.insert(0,atomIndY)
-                    if atomY not in atomsY:
+                    atomIndX = strX.atoms[int(foo[-i])-1].id
+                    if atomIndX in indMap.keys():
+                        atomIndY = indMap[atomIndX]
+                    else:
+                        atomIndY,atomY = _find_atom_inY( int(foo[-i]), strX, strY, bName=bName, bResName=bResName, indMap=indMap )
                         atomsY.append(atomY)
+                        indMap[atomIndX] = atomIndY
+                    out.insert(0,atomIndY)
                 else:
                     out.insert(0,foo[-i])
 
