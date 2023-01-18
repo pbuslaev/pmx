@@ -88,9 +88,9 @@ def create_folder( path, fname=False ):
     """ 
     if fname==False:
         if not os.path.exists(path):
-            os.makedirs(path)
+            os.makedirs(path, exist_ok=True)
     elif not os.path.exists(path+'/'+fname):
-        os.makedirs(path+'/'+fname)
+        os.makedirs(path+'/'+fname, exist_ok=True)
 
 def show_ff(gmxlib=None):
     """Prints the list of forcefields available in GMXLIB.
