@@ -918,6 +918,7 @@ class AbsoluteDG:
     def _collect_topologies( self ):
         
         # for every ligand
+        ligCounter = 0 # counter of ligands processed
         for lig in self.ligList:
             fflist = [] # sufficient to collect ff for holo
             self.ffitp[lig] = {}
@@ -926,13 +927,15 @@ class AbsoluteDG:
             for mol in self.ligands[lig].keys():
 
                 # collect holo
-                self._collect_topologies_apo_holo( case='holo', lig=lig, mol=mol, fflist=fflist )
+                self._collect_topologies_apo_holo( case='holo', lig=lig, mol=mol, fflist=fflist, ligCounter=ligCounter )
                 
                 # collect apo
                 if self.apoCase!=None:
-                    self._collect_topologies_apo_holo( case='apo', lig=lig, mol=mol )
+                    self._collect_topologies_apo_holo( case='apo', lig=lig, mol=mol, ligCounter=ligCounter )
                 else:
                     self._copy_topologies_holo_to_apo( lig=lig )
+
+            ligCounter+=1
                                 
             # one ff file
             # holo
@@ -943,9 +946,10 @@ class AbsoluteDG:
             ffout = '{0}/{1}/strTopFolder_apo/ffMOL.itp'.format(self.workPath,lig)
             self.ffitp[lig]['apo'] = ffout            
             oneFFfile( fileList=fflist, fnameOut=ffout )    
+
             
                 
-    def _collect_topologies_apo_holo( self, case='holo', lig='', mol='', fflist=[] ):
+    def _collect_topologies_apo_holo( self, case='holo', lig='', mol='', fflist=[], ligCounter=0 ):
         
         targetFolder = '{0}/{1}/strTopFolder_{2}'.format(self.workPath,lig,case)
         sourceCase = self.ligands[lig][mol]
@@ -957,8 +961,11 @@ class AbsoluteDG:
             if case=='apo' and mol=='ligand':
                 cmd = 'cp {0} {1}/{2}'.format(sourceCase.topItpPath,targetFolder,sourceCase.topItp)     
             else:
-                cmd = 'cp {0} {1}/{2}_{3}'.format(sourceCase.topItpPath,targetFolder,mol,sourceCase.topItp)
-                sourceCase.topItp = '{0}_{1}'.format(mol,sourceCase.topItp)
+                if (ligCounter==0 and case=='apo') or (case=='holo'):
+                    cmd = 'cp {0} {1}/{2}_{3}'.format(sourceCase.topItpPath,targetFolder,mol,sourceCase.topItp)
+                    sourceCase.topItp = '{0}_{1}'.format(mol,sourceCase.topItp)
+                else:
+                    cmd = 'cp {0} {1}/{2}'.format(sourceCase.topItpPath,targetFolder,sourceCase.topItp)
             os.system(cmd)
                    
         # posre
@@ -976,10 +983,11 @@ class AbsoluteDG:
 #                sourceCase.structPdb = '{0}_{1}'.format(mol,sourceCase.structPdb)
             
             infile = sourceCase.structPdbPath
-            outfile = '{0}/{1}_{2}'.format(targetFolder,mol,sourceCase.structPdb)
-            self._make_clean_pdb(fnameIn=[infile],fnameOut=outfile)
             if case!='apo' or mol!='ligand':
-                sourceCase.structPdb = '{0}_{1}'.format(mol,sourceCase.structPdb)            
+                if (ligCounter==0 and case=='apo') or (case=='holo'):
+                    sourceCase.structPdb = '{0}_{1}'.format(mol,sourceCase.structPdb) 
+            outfile = '{0}/{1}'.format(targetFolder,sourceCase.structPdb)
+            self._make_clean_pdb(fnameIn=[infile],fnameOut=outfile)
             
         # fftop collect into one ff
         if sourceCase.topFFItp!=None:
