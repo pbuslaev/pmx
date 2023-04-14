@@ -27,6 +27,7 @@ class AbsRestraints:
 
         # booleans
         self.bLigMaxSpread = False
+        self.bLigMidSpread = True
         self.bMartini = False
         self.bManLig = False
         self.bManProt = False
@@ -511,9 +512,10 @@ class AbsRestraints:
                         indLig = a.id-1
         return(indLig)
 
-    def _furthest_lig_atom( self, system, resname, indLig1, indLig2=False, usedID=[] ):
+    def _furthest_lig_atom( self, system, resname, indLig1, indLig2=False, usedID=[], bReturnAtom=False ):
         indLig = -42
         maxdist = -99999.999
+        maxatom = ''
         for a in system.atoms:
             if a.resname==resname and (a.id-1 in self.indLig):
                 aname = self._get_atom_name( a.name )
@@ -524,16 +526,45 @@ class AbsRestraints:
                     if d>maxdist:
                         maxdist = d
                         indLig = a.id-1
+                        maxatom = a
+        if bReturnAtom==True:
+            return(maxatom)
         return(indLig)
 
-    def _closest_lig_atom( self, system, resname, indLig1, usedID=[] ):
+    def _closest_lig_atom( self, system, resname, indLig1, usedID=[], bReturnAtom=False ):
+        indLig = -42
+        mindist = 99999.999
+        minatom = ''
+        for a in system.atoms:
+            if a.resname==resname and (a.id-1 in self.indLig):
+                aname = self._get_atom_name( a.name )
+                if aname.startswith(('C','N')) and not aname.startswith('CL') and (a.id-1 not in usedID):
+                    d = a - system.atoms[indLig1]
+                    if d<mindist:
+                        mindist = d
+                        indLig = a.id-1
+                        minatom = a
+        if bReturnAtom==True:
+            return(minatom)
+        return(indLig)
+
+    def _mid_lig_atom( self, system, resname, ligCOM, indLig1, indLig2=False, usedID=[] ):
+        # closest atom
+#        minatom = self._closest_lig_atom( system, resname, indLig1, usedID, bReturnAtom=True)
+        # furthest atom
+        maxatom = self._furthest_lig_atom( system, resname, indLig1, indLig2=indLig2, usedID=usedID, bReturnAtom=True)
+        # mid point
+        ax = (ligCOM[0]+maxatom.x[0])*0.5
+        ay = (ligCOM[1]+maxatom.x[1])*0.5
+        az = (ligCOM[2]+maxatom.x[2])*0.5
+
         indLig = -42
         mindist = 99999.999
         for a in system.atoms:
             if a.resname==resname and (a.id-1 in self.indLig):
                 aname = self._get_atom_name( a.name )
                 if aname.startswith(('C','N')) and not aname.startswith('CL') and (a.id-1 not in usedID):
-                    d = a - system.atoms[indLig1]
+                    d = (a.x[0]-ax)**2 + (a.x[1]-ay)**2 + (a.x[2]-az)**2
                     if d<mindist:
                         mindist = d
                         indLig = a.id-1
@@ -565,17 +596,22 @@ class AbsRestraints:
 
         if self.bLigMaxSpread==True:
             # second atom furthest from first atom
-            indLig2 = self._furthest_lig_atom( system, resname, indLig1, usedID )
+            indLig2 = self._furthest_lig_atom( system, resname, indLig1, usedID=usedID )
+        elif self.bLigMidSpread==True:
+            # second atom in the middle from the furthest and closest atom
+            indLig2 = self._mid_lig_atom( system, resname, ligCOM, indLig1, usedID=usedID )
         else:
             # second atom closest to the first atom
-            indLig2 = self._closest_lig_atom( system, resname, indLig1, usedID )
+            indLig2 = self._closest_lig_atom( system, resname, indLig1, usedID=usedID )
         usedID.append(indLig2)
 
         if self.bLigMaxSpread==True:
             # third atom furthest from first and second atoms
-            indLig3 = self._furthest_lig_atom( system, resname, indLig1, indLig2, usedID )
+            indLig3 = self._furthest_lig_atom( system, resname, indLig1, indLig2=indLig2, usedID=[] )
+        elif self.bLigMidSpread==True:
+            indLig3 = self._mid_lig_atom( system, resname, ligCOM, indLig1, indLig2=indLig2, usedID=[] )
         else:
-            indLig3 = self._closest_lig_atom( system, resname, indLig1, usedID )
+            indLig3 = self._closest_lig_atom( system, resname, indLig1, usedID=usedID )
        
         return([indLig1],[indLig2],[indLig3])
 
