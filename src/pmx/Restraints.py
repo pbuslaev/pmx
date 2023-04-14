@@ -798,7 +798,7 @@ def _find_atom_inY( ind, strX, strY, bName=True, bResName=False, indMap={}, bRet
         a.a2nm()
         if bName==True and a.name!=aX.name:
             continue
-        if bResName==True and not self._compare_resnames(a.resname,aX.resname):
+        if bResName==True and not _compare_resnames(a.resname,aX.resname):
             continue
         if a.id in indMap.values():
             continue
