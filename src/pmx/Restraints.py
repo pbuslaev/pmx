@@ -798,7 +798,7 @@ def _find_atom_inY( ind, strX, strY, bName=True, bResName=False, indMap={}, bRet
         a.a2nm()
         if bName==True and a.name!=aX.name:
             continue
-        if bResName==True and a.resname!=aX.resname:
+        if bResName==True and not self._compare_resnames(a.resname,aX.resname):
             continue
         if a.id in indMap.values():
             continue
@@ -810,6 +810,14 @@ def _find_atom_inY( ind, strX, strY, bName=True, bResName=False, indMap={}, bRet
         return(aY.id,aY,minDist)
     else:
         return(aY.id,aY)
+
+def _compare_resnames(rname1,rname2):
+    if rname1==rname2:
+        return(True)
+    elif rname1.startswith('H') and rname2.startswith('H'):
+        return(True)
+    else:
+        return(False)
 
 def transfer_ii( pdbX, pdbY, iiInpFname, iiOutFname, bName=True, bResName=True, pdbRestrAtoms=None ):
     """Transfers intermolecular restraints from one structure to another,
