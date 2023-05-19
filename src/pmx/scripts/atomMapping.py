@@ -47,7 +47,7 @@ from pmx.scripts.cli import check_unknown_cmd
 from pmx.ligand_alchemy import *
 import time
 import warnings
-
+from rdkit import Chem
 
 
 # =============
