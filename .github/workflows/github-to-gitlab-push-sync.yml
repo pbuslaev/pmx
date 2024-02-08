@@ -2,9 +2,7 @@ name: build
 
 on: 
   push:
-    branches:
-      - 'master'
-      - 'develop'
+    branches: [ master, develop ]
 
 jobs:
   sync:
@@ -15,7 +13,6 @@ jobs:
       with:
         fetch-depth: 0
     - uses: deGrootLab/pmx@master
-    - uses: deGrootLab/pmx@develop
       with:
         target-url: 'https://codehub.hlrs.de/coes/bioexcel/pmx.git'
         target-username: ${{ secrets.ACCESS_TOKEN_NAME }}
