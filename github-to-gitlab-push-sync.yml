@@ -16,7 +16,7 @@ jobs:
     - uses: actions/checkout@v4
       with:
         fetch-depth: 0
-    - uses: deGrootLab/pmx@master
+    - uses: deGrootLab/pmx
       with:
         target-url: 'https://codehub.hlrs.de/coes/bioexcel/pmx.git'
         target-username: ${{ secrets.ACCESS_TOKEN_NAME }}
