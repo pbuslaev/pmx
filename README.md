@@ -1,5 +1,6 @@
 # pmx
 ## Introduction ##
+(The 'master' branch is written in Python 2. For Python 3 version and Icolos support use 'develop' branch.)
 
 pmx (formerly pymacs) has started as a small bunch of classes to read structure files such as pdb or gro and trajectory data in gromacs xtc format. Over the years it has been extended
 towards a versatile (bio-) molecular structure manipulation package with some additional functionalities, e.g. gromacs file parsers and scripts for setup and analysis of free energy calculations.
