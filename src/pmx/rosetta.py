@@ -15,7 +15,7 @@ from .resselection import InteractiveSelection
 from pmx import resselection
 from pmx.parser import parseList, kickOutComments
 from .utils import create_folder,remove_netmount
-from pmx import jobscripts
+from pmx import jobscript
 
 # =======
 # Helper functions
