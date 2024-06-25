@@ -3,7 +3,10 @@ import numpy as np
 import subprocess
 import os
 from os import path
-from scipy.integrate import simps
+try:
+    from scipy.integrate import simps
+except ImportError:
+    from scipy.integrate import simpson as simps
 from matplotlib import pyplot as plt
 from copy import deepcopy
 from scipy.special import erf
